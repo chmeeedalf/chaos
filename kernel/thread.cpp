@@ -65,7 +65,7 @@ thread_find_by_tid(int tid)
 
 	for (int i = 0; i < MAX_DYNAMIC_THREADS; i++) {
 		/* If there's no runtime struct, there's no thread. */
-		if (dynamic_threads[i].thr_run == NULL)
+		if (dynamic_threads[i].thr_run == nullptr)
 			continue;
 		td = &dynamic_threads[i];
 		if (td->thr_run->thr_tid == tid)
@@ -79,10 +79,12 @@ thread_show(int tid)
 {
 	thread_t *td = thread_find_by_tid(tid);
 	
-	if (td == NULL)
+	if (td == nullptr) {
+		iprintf("No thread matching TID %d\n\r", tid);
 		return -1;
+	}
 
-	iprintf("Name:\t%s\n", td->thr_name);
+	iprintf("Name:\t%s\n\r", td->thr_name);
 	return 0;
 }
 
@@ -92,11 +94,11 @@ thread_list(void)
 	thread_t *i;
 	iprintf("NAME\n");
 	for (i = &sys_threads[0]; i != &sys_threads_end; i++) {
-		iprintf("%s\n", i->thr_name);
+		iprintf("%s\n\r", i->thr_name);
 	}
 	for (int t = 0; t < MAX_DYNAMIC_THREADS; t++) {
-		if (dynamic_threads[t].thr_name != NULL)
-			iprintf("%s\n", i->thr_name);
+		if (dynamic_threads[t].thr_name != nullptr)
+			iprintf("%s\n\r", i->thr_name);
 	}
 	return 0;
 }
