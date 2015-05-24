@@ -1,6 +1,7 @@
 #include <sys/cpp.h>
 #include <sys/types.h>
 #include <stdlib.h>
+#include <errno.h>
 
 
 #ifndef SHELL_CMD_LINE
@@ -68,7 +69,7 @@ union sh_cmd_family_un {
 	struct sh_cmd<T> cmd;
 };
 
-#if 0
+/*
 A little about the following macros:
 
 CMD_FAMILY() defines a command family (top-level command).  At some point, I plan to have nested families, but for now that's not the case.
@@ -80,20 +81,16 @@ We use a number of custom section names:
 .command.<command>.a.<subcommand>	- Each command is in here.  Alphabetic order
 .command.<command>.z				- Command terminator.
 
-#endif
+*/
 
 namespace {
 	template <typename T>
-	T extract_arg(const char *arg) {}
+	T extract_arg(const char *arg);
 
 	template <>
 	int extract_arg(const char *arg) {
-		char *end;
-		int retval = strtol(arg, &end, 0);
-		if (end == arg || *end != '\0')
-			iprintf("Invalid argument.  Expected integer.\n\r");
-
-		return retval;
+		// All error checking done in the validator.
+		return strtol(arg, nullptr, 0);
 	}
 
 	template <>
@@ -101,6 +98,22 @@ namespace {
 
 	template <>
 	char extract_arg(const char *arg) { return *arg; }
+
+	template <typename T>
+	bool validate_cmd_arg(const char *arg);
+
+	template <>
+	bool validate_cmd_arg<int>(const char *arg) {
+		char *end;
+		int retval = strtol(arg, &end, 0);
+		return (end != arg && *end == '\0' && errno == 0);
+	}
+
+	template <>
+	bool validate_cmd_arg<const char *>(const char *arg) { return true; }
+
+	template <>
+	bool validate_cmd_arg<char>(const char *arg) { return (*arg != '\0'); }
 
 	template <typename T>
 	int get_arg_type(T unused) { return sh_void_type; }
@@ -137,9 +150,17 @@ template<typename... Args>
 int
 do_shell_command(const sh_cmd<int(Args...)> *cmd, int argc, const char * const * argv)
 {
+	int i = 0;
+	bool validated_args[sizeof...(Args)] = {validate_cmd_arg<Args>(argv[i++])...};
 	if (argc != sizeof...(Args)) {
 		iprintf("Insufficient arguments for %s\n\r", cmd->name);
 		return -1;
+	}
+	for (i = 0; i < sizeof...(Args); i++) {
+		if (!validated_args[i]) {
+			iprintf("Invalid argument '%s'.\n\r", argv[i]);
+			return -1;
+		}
 	}
 	return cmd->real_func(extract_arg<Args>(*argv++)...);
 }
