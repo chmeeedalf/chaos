@@ -36,6 +36,8 @@
 #include "driverlib/rom.h"
 #include "driverlib/rom_map.h"
 
+#include <sys/thread.h>
+
 //*****************************************************************************
 //
 // Ensure that ICMP checksum offloading is enabled; otherwise the TM4C129
@@ -100,20 +102,6 @@ extern void lwIPHostTimerHandler(void);
 #include "driverlib/rom.h"
 #include "driverlib/rom_map.h"
 #include "driverlib/sysctl.h"
-#if !NO_SYS
-#if RTOS_FREERTOS
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "semphr.h"
-#endif
-#if ((RTOS_FREERTOS) < 1)
-    #error No RTOS is defined.  Please define an RTOS.
-#endif
-#if ((RTOS_FREERTOS) > 1)
-    #error More than one RTOS defined.  Please define only one RTOS at a time.
-#endif
-#endif
 
 //*****************************************************************************
 //
@@ -128,106 +116,6 @@ static struct netif g_sNetIF;
 //
 //*****************************************************************************
 tHardwareTimerHandler g_pfnTimerHandler;
-
-//*****************************************************************************
-//
-// The local time for the lwIP Library Abstraction layer, used to support the
-// Host and lwIP periodic callback functions.
-//
-//*****************************************************************************
-#if NO_SYS
-uint32_t g_ui32LocalTimer = 0;
-#endif
-
-//*****************************************************************************
-//
-// The local time when the TCP timer was last serviced.
-//
-//*****************************************************************************
-#if NO_SYS
-static uint32_t g_ui32TCPTimer = 0;
-#endif
-
-//*****************************************************************************
-//
-// The local time when the HOST timer was last serviced.
-//
-//*****************************************************************************
-#if NO_SYS && HOST_TMR_INTERVAL
-static uint32_t g_ui32HostTimer = 0;
-#endif
-
-//*****************************************************************************
-//
-// The local time when the ARP timer was last serviced.
-//
-//*****************************************************************************
-#if NO_SYS && LWIP_ARP
-static uint32_t g_ui32ARPTimer = 0;
-#endif
-
-//*****************************************************************************
-//
-// The local time when the AutoIP timer was last serviced.
-//
-//*****************************************************************************
-#if NO_SYS && LWIP_AUTOIP
-static uint32_t g_ui32AutoIPTimer = 0;
-#endif
-
-//*****************************************************************************
-//
-// The local time when the DHCP Coarse timer was last serviced.
-//
-//*****************************************************************************
-#if NO_SYS && LWIP_DHCP
-static uint32_t g_ui32DHCPCoarseTimer = 0;
-#endif
-
-//*****************************************************************************
-//
-// The local time when the DHCP Fine timer was last serviced.
-//
-//*****************************************************************************
-#if NO_SYS && LWIP_DHCP
-static uint32_t g_ui32DHCPFineTimer = 0;
-#endif
-
-//*****************************************************************************
-//
-// The local time when the IP Reassembly timer was last serviced.
-//
-//*****************************************************************************
-#if NO_SYS && IP_REASSEMBLY
-static uint32_t g_ui32IPReassemblyTimer = 0;
-#endif
-
-//*****************************************************************************
-//
-// The local time when the IGMP timer was last serviced.
-//
-//*****************************************************************************
-#if NO_SYS && LWIP_IGMP
-static uint32_t g_ui32IGMPTimer = 0;
-#endif
-
-//*****************************************************************************
-//
-// The local time when the DNS timer was last serviced.
-//
-//*****************************************************************************
-#if NO_SYS && LWIP_DNS
-static uint32_t g_ui32DNSTimer = 0;
-#endif
-
-//*****************************************************************************
-//
-// The local time when the link detect timer was last serviced.
-//
-//*****************************************************************************
-#if NO_SYS && (LWIP_AUTOIP || LWIP_DHCP)
-static uint32_t g_ui32LinkTimer = 0;
-#endif
 
 //*****************************************************************************
 //
@@ -274,9 +162,7 @@ static uint32_t g_ui32GWAddr;
 // The stack size for the interrupt task.
 //
 //*****************************************************************************
-#if !NO_SYS
 #define STACKSIZE_LWIPINTTASK   128
-#endif
 
 //*****************************************************************************
 //
@@ -284,9 +170,7 @@ static uint32_t g_ui32GWAddr;
 // from the interrupt handler.
 //
 //*****************************************************************************
-#if !NO_SYS
 static xQueueHandle g_pInterrupt;
-#endif
 
 //*****************************************************************************
 //
@@ -294,7 +178,6 @@ static xQueueHandle g_pInterrupt;
 // them to the TCP/IP thread.
 //
 //*****************************************************************************
-#if !NO_SYS
 static void
 lwIPInterruptTask(void *pvArg)
 {
@@ -324,7 +207,6 @@ lwIPInterruptTask(void *pvArg)
                                        EMAC_INT_RX_STOPPED | EMAC_INT_PHY));
     }
 }
-#endif
 
 //*****************************************************************************
 //
@@ -419,134 +301,10 @@ lwIPLinkDetect(void)
 
 //*****************************************************************************
 //
-// This function services all of the lwIP periodic timers, including TCP and
-// Host timers.  This should be called from the lwIP context, which may be
-// the Ethernet interrupt (in the case of a non-RTOS system) or the lwIP
-// thread, in the event that an RTOS is used.
-//
-//*****************************************************************************
-#if NO_SYS
-static void
-lwIPServiceTimers(void)
-{
-    //
-    // Service the host timer.
-    //
-#if HOST_TMR_INTERVAL
-    if((g_ui32LocalTimer - g_ui32HostTimer) >= HOST_TMR_INTERVAL)
-    {
-        g_ui32HostTimer = g_ui32LocalTimer;
-        lwIPHostTimerHandler();
-    }
-#endif
-
-    //
-    // Service the ARP timer.
-    //
-#if LWIP_ARP
-    if((g_ui32LocalTimer - g_ui32ARPTimer) >= ARP_TMR_INTERVAL)
-    {
-        g_ui32ARPTimer = g_ui32LocalTimer;
-        etharp_tmr();
-    }
-#endif
-
-    //
-    // Service the TCP timer.
-    //
-#if LWIP_TCP
-    if((g_ui32LocalTimer - g_ui32TCPTimer) >= TCP_TMR_INTERVAL)
-    {
-        g_ui32TCPTimer = g_ui32LocalTimer;
-        tcp_tmr();
-    }
-#endif
-
-    //
-    // Service the AutoIP timer.
-    //
-#if LWIP_AUTOIP
-    if((g_ui32LocalTimer - g_ui32AutoIPTimer) >= AUTOIP_TMR_INTERVAL)
-    {
-        g_ui32AutoIPTimer = g_ui32LocalTimer;
-        autoip_tmr();
-    }
-#endif
-
-    //
-    // Service the DCHP Coarse Timer.
-    //
-#if LWIP_DHCP
-    if((g_ui32LocalTimer - g_ui32DHCPCoarseTimer) >= DHCP_COARSE_TIMER_MSECS)
-    {
-        g_ui32DHCPCoarseTimer = g_ui32LocalTimer;
-        dhcp_coarse_tmr();
-    }
-#endif
-
-    //
-    // Service the DCHP Fine Timer.
-    //
-#if LWIP_DHCP
-    if((g_ui32LocalTimer - g_ui32DHCPFineTimer) >= DHCP_FINE_TIMER_MSECS)
-    {
-        g_ui32DHCPFineTimer = g_ui32LocalTimer;
-        dhcp_fine_tmr();
-    }
-#endif
-
-    //
-    // Service the IP Reassembly Timer
-    //
-#if IP_REASSEMBLY
-    if((g_ui32LocalTimer - g_ui32IPReassemblyTimer) >= IP_TMR_INTERVAL)
-    {
-        g_ui32IPReassemblyTimer = g_ui32LocalTimer;
-        ip_reass_tmr();
-    }
-#endif
-
-    //
-    // Service the IGMP Timer
-    //
-#if LWIP_IGMP
-    if((g_ui32LocalTimer - g_ui32IGMPTimer) >= IGMP_TMR_INTERVAL)
-    {
-        g_ui32IGMPTimer = g_ui32LocalTimer;
-        igmp_tmr();
-    }
-#endif
-
-    //
-    // Service the DNS Timer
-    //
-#if LWIP_DNS
-    if((g_ui32LocalTimer - g_ui32DNSTimer) >= DNS_TMR_INTERVAL)
-    {
-        g_ui32DNSTimer = g_ui32LocalTimer;
-        dns_tmr();
-    }
-#endif
-
-    //
-    // Service the link timer.
-    //
-#if LWIP_AUTOIP || LWIP_DHCP
-    if((g_ui32LocalTimer - g_ui32LinkTimer) >= LINK_TMR_INTERVAL)
-    {
-        g_ui32LinkTimer = g_ui32LocalTimer;
-        lwIPLinkDetect();
-    }
-#endif
-}
-#endif
-
-//*****************************************************************************
-//
 // Handles the timeout for the host callback function timer when using a RTOS.
 //
 //*****************************************************************************
-#if !NO_SYS && HOST_TMR_INTERVAL
+#if HOST_TMR_INTERVAL
 static void
 lwIPPrivateHostTimer(void *pvArg)
 {
@@ -567,7 +325,7 @@ lwIPPrivateHostTimer(void *pvArg)
 // Handles the timeout for the link detect timer when using a RTOS.
 //
 //*****************************************************************************
-#if !NO_SYS && (LWIP_AUTOIP || LWIP_DHCP)
+#if (LWIP_AUTOIP || LWIP_DHCP)
 static void
 lwIPPrivateLinkTimer(void *pvArg)
 {
@@ -583,6 +341,8 @@ lwIPPrivateLinkTimer(void *pvArg)
 }
 #endif
 
+// Interrupt task uses no heap.
+NAMED_THREAD(eth_int, "eth_int", lwIPInterruptTask, 0, STACKSIZE_LWIPINTTASK, 0, THREAD_IDLE_PRIORITY - 1);
 //*****************************************************************************
 //
 // Completes the initialization of lwIP.  This is directly called when not
@@ -598,32 +358,14 @@ lwIPPrivateInit(void *pvArg)
     struct ip_addr gw_addr;
 
     //
-    // If not using a RTOS, initialize the lwIP stack.
-    //
-#if NO_SYS
-    lwip_init();
-#endif
-
-    //
     // If using a RTOS, create a queue (to be used as a semaphore) to signal
     // the Ethernet interrupt task from the Ethernet interrupt handler.
     //
-#if !NO_SYS
 #if RTOS_FREERTOS
     g_pInterrupt = xQueueCreate(1, sizeof(void *));
 #endif
-#endif
 
-    //
-    // If using a RTOS, create the Ethernet interrupt task.
-    //
-#if !NO_SYS
-#if RTOS_FREERTOS
-    xTaskCreate(lwIPInterruptTask, (signed portCHAR *)"eth_int",
-                STACKSIZE_LWIPINTTASK, 0, tskIDLE_PRIORITY + 1,
-                0);
-#endif
-#endif
+	eth_int->start();
 
     //
     // Setup the network address values.
@@ -647,13 +389,8 @@ lwIPPrivateInit(void *pvArg)
     // the stack when not using a RTOS and tcpip_input should be used to send
     // packets to the TCP/IP thread's queue when using a RTOS.
     //
-#if NO_SYS
-    netif_add(&g_sNetIF, &ip_addr, &net_mask, &gw_addr, NULL, tivaif_init,
-              ip_input);
-#else
     netif_add(&g_sNetIF, &ip_addr, &net_mask, &gw_addr, NULL, tivaif_init,
               tcpip_input);
-#endif
     netif_set_default(&g_sNetIF);
 
     //
@@ -664,14 +401,14 @@ lwIPPrivateInit(void *pvArg)
     //
     // Setup a timeout for the host timer callback function if using a RTOS.
     //
-#if !NO_SYS && HOST_TMR_INTERVAL
+#if HOST_TMR_INTERVAL
     sys_timeout(HOST_TMR_INTERVAL, lwIPPrivateHostTimer, NULL);
 #endif
 
     //
     // Setup a timeout for the link detect callback function if using a RTOS.
     //
-#if !NO_SYS && (LWIP_AUTOIP || LWIP_DHCP)
+#if (LWIP_AUTOIP || LWIP_DHCP)
     sys_timeout(LINK_TMR_INTERVAL, lwIPPrivateLinkTimer, NULL);
 #endif
 }
@@ -806,11 +543,7 @@ lwIPInit(uint32_t ui32SysClkHz, const uint8_t *pui8MAC, uint32_t ui32IPAddr,
     // not using a RTOS and it is deferred to the TCP/IP thread's context if
     // using a RTOS.
     //
-#if NO_SYS
-    lwIPPrivateInit(0);
-#else
     tcpip_init(lwIPPrivateInit, 0);
-#endif
 }
 
 //*****************************************************************************
@@ -849,42 +582,6 @@ lwIPTimerCallbackRegister(tHardwareTimerHandler pfnTimerFunc)
 
 //*****************************************************************************
 //
-//! Handles periodic timer events for the lwIP TCP/IP stack.
-//!
-//! \param ui32TimeMS is the incremental time for this periodic interrupt.
-//!
-//! This function will update the local timer by the value in \e ui32TimeMS.
-//! If the system is configured for use without an RTOS, an Ethernet interrupt
-//! will be triggered to allow the lwIP periodic timers to be serviced in the
-//! Ethernet interrupt.
-//!
-//! \return None.
-//
-//*****************************************************************************
-#if NO_SYS
-void
-lwIPTimer(uint32_t ui32TimeMS)
-{
-    //
-    // Increment the lwIP Ethernet timer.
-    //
-    g_ui32LocalTimer += ui32TimeMS;
-
-    //
-    // Generate an Ethernet interrupt.  This will perform the actual work
-    // of checking the lwIP timers and taking the appropriate actions.  This is
-    // needed since lwIP is not re-entrant, and this allows all lwIP calls to
-    // be placed inside the Ethernet interrupt handler ensuring that all calls
-    // into lwIP are coming from the same context, preventing any reentrancy
-    // issues.  Putting all the lwIP calls in the Ethernet interrupt handler
-    // avoids the use of mutexes to avoid re-entering lwIP.
-    //
-    HWREG(NVIC_SW_TRIG) |= INT_EMAC0 - 16;
-}
-#endif
-
-//*****************************************************************************
-//
 //! Handles Ethernet interrupts for the lwIP TCP/IP stack.
 //!
 //! This function handles Ethernet interrupts for the lwIP TCP/IP stack.  At
@@ -903,9 +600,7 @@ lwIPEthernetIntHandler(void)
 {
     uint32_t ui32Status;
     uint32_t ui32TimerStatus;
-#if !NO_SYS
     portBASE_TYPE xWake;
-#endif
 
     //
     // Read and Clear the interrupt.
@@ -943,21 +638,6 @@ lwIPEthernetIntHandler(void)
     //
     // The handling of the interrupt is different based on the use of a RTOS.
     //
-#if NO_SYS
-    //
-    // No RTOS is being used.  If a transmit/receive interrupt was active,
-    // run the low-level interrupt handler.
-    //
-    if(ui32Status)
-    {
-        tivaif_interrupt(&g_sNetIF, ui32Status);
-    }
-
-    //
-    // Service the lwIP timers.
-    //
-    lwIPServiceTimers();
-#else
     //
     // A RTOS is being used.  Signal the Ethernet interrupt task.
     //
@@ -981,7 +661,6 @@ lwIPEthernetIntHandler(void)
     {
         portYIELD_FROM_ISR(true);
     }
-#endif
 #endif
 }
 
@@ -1280,11 +959,7 @@ lwIPNetworkConfigChange(uint32_t ui32IPAddr, uint32_t ui32NetMask,
     // immediately if not using a RTOS and it is deferred to the TCP/IP
     // thread's context if using a RTOS.
     //
-#if NO_SYS
-    lwIPPrivateNetworkConfigChange((void *)ui32IPMode);
-#else
     tcpip_callback(lwIPPrivateNetworkConfigChange, (void *)ui32IPMode);
-#endif
 }
 
 //*****************************************************************************

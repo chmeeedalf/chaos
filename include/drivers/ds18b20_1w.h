@@ -30,12 +30,11 @@
 
 #ifndef DS18B20_1W_H
 #define DS18B20_1W_H
-#include <sys/device.h>
 #include <drivers/1w.h>
 
 class ds18b20 : public chaos::onewire_device {
 	public:
+		using onewire_device::onewire_device;
 		int get_temp() const;
 };
-//DRIVER(ds18b20);
 #endif

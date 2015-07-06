@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014	Justin Hibbits
+ * Copyright (c) 2015	Justin Hibbits
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,18 +31,17 @@
 #ifndef SYS_SCHED_H
 #define SYS_SCHED_H
 
+#include <config.h>
 #include <sys/cdefs.h>
-#include <sys/queue.h>
 #include <sys/reent.h>
 #include <sys/types.h>
-#include <sys/kernel.h>
+#include <chaos/kernel.h>
+#include <chaos/list.h>
+#include <chaos/queue.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace chaos {
+
 typedef void (*thread_func_t)(void *);
-
-typedef struct thread_s thread_t;
 
 enum {
     THREAD_STATE_IDLE = 0,
@@ -50,15 +49,8 @@ enum {
     THREAD_STATE_SUSPENDED,
     THREAD_STATE_WAITING,
 };
-typedef struct thread_run_s {
-	const thread_t	*thr_thread;
-	struct _reent	 thr_reent;
-	int		 thr_tid;
-	time_t		 thr_runtime;
-	time_t		 thr_lastrun;
-	int		 thr_state;
-	ssize_t		 thr_heap_top;
-} thread_run_t;
+
+class thread;
 
 /*
  * A thread is a context of execution.  It may or may not belong to a task.
@@ -67,23 +59,38 @@ typedef struct thread_run_s {
  * run-to-completion (or event-based), while non-real-time threads are
  * preemptible, if the system is configured as such.
  */
-struct thread_s {
+struct thread {
+
+	struct run : public chaos::list<chaos::thread::run>::node {
+		//friend class thread;
+		const thread	*thr_thread;
+		struct _reent	 thr_reent = {};
+		int		 thr_tid = 0;
+		time_t		 thr_runtime = 0;
+		time_t		 thr_lastrun = 0;
+		int		 thr_state = 0;
+		ssize_t		 thr_heap_top = 0;
+		public:
+			constexpr run(const thread *thread) : thr_thread(thread) {}
+	};
+
 	const char	*thr_name;
 	thread_func_t	 thr_entry;
 	uint32_t	 thr_deadline;	/* In microseconds, deadline after which
 					   this thread has failed. */
 	uint32_t	 thr_priority;
-	thread_run_t	*thr_run;
+	run	*thr_run;
 	size_t		 thr_ssize;
 	size_t		 thr_hsize;
 	uintptr_t	*thr_stack;
-	void		*thr_heap;	/* Pointer. */
-};
+	uintptr_t	*thr_heap;	/* Pointer. */
 
-typedef struct task_run_s {
-	struct task_s	*ta_task;
-	int		 ta_pid;
-} task_run_t;
+	// Class methods
+	static thread *find_by_tid(int tid);
+
+	// Instance methods
+	void start() const;
+};
 
 /*
  * A task runs in unprivileged mode.  It consists of a set of threads.  It can
@@ -91,22 +98,27 @@ typedef struct task_run_s {
  * uses a task template, cloned and modified as needed.  Tasks cannot have
  * real-time threads.
  */
-typedef struct task_s {
-	const char	*ta_name;
-	task_run_t	*ta_run;
-} task_t;
+class task {
+	public:
+		class run {
+			struct task_s	*ta_task;
+			int		 ta_pid;
+		};
+		const char	*ta_name;
+		run	*ta_run;
+};
 
-extern const thread_t *curthread;
+extern const thread *curthread;
 void sched_yield(void);
 
-thread_t *thread_create(thread_t *thr_template);
-thread_t *thread_find_by_tid(int tid);
+thread *thread_create(thread *thr_template);
+thread *thread_find_by_tid(int tid);
 
 #define __THREAD(name, entry, deadline, ssize, hsize, prio, thrname) \
-	extern thread_run_t __CONCAT(thrname,__run); \
+	extern chaos::thread::run __CONCAT(thrname,__run); \
 	uintptr_t __CONCAT(thrname,__stack)[KERN_ROUND(ssize,sizeof(uintptr_t))]; \
 	uintptr_t __CONCAT(thrname,__heap)[KERN_ROUND(hsize,sizeof(uintptr_t))]; \
-	const thread_t thrname __attribute__((section(".threads"))) = { \
+	const chaos::thread thrname __attribute__((section(".threads"))) = { \
 		.thr_name = name, \
 		.thr_entry = entry, \
 		.thr_deadline = deadline, \
@@ -117,18 +129,25 @@ thread_t *thread_find_by_tid(int tid);
 		.thr_stack = __CONCAT(thrname,__stack), \
 		.thr_heap = __CONCAT(thrname,__heap) \
 	}; \
-	thread_run_t __CONCAT(thrname,__run) = { .thr_thread = &thrname }; \
+	chaos::thread::run __CONCAT(thrname,__run) { &thrname }; \
 	struct hack
 
-#define _THREAD(name, entry, deadline, ssize, hsize, prio) \
-	__THREAD(name, entry, deadline, ssize, hsize, prio, __CONCAT(thread,__COUNTER__))
-#define RTTHREAD(name, entry, deadline, ssize, hsize, prio) \
-	_THREAD(name, entry, deadline, ssize, hsize, prio)
+#define NAMED_THREAD(name, descr, entry, deadline, ssize, hsize, prio) \
+	__THREAD(descr, entry, deadline, ssize, hsize, prio, name)
 
-#define THREAD(name, entry, ssize, hsize, prio) \
-	_THREAD(name, entry, 0, ssize, hsize, prio)
+#define _THREAD(descr, entry, deadline, ssize, hsize, prio) \
+	__THREAD(descr, entry, deadline, ssize, hsize, prio, __CONCAT(thread,__COUNTER__))
+#define RTTHREAD(descr, entry, deadline, ssize, hsize, prio) \
+	_THREAD(descr, entry, deadline, ssize, hsize, prio)
+
+#define THREAD(descr, entry, ssize, hsize, prio) \
+	_THREAD(descr, entry, 0, ssize, hsize, prio)
 #endif
-#ifdef __cplusplus
+
+
+/* Scheduler related. */
+void sched_run(void);
+void sched_tick(void);
+
 }
-#endif
 

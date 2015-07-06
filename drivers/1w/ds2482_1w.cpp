@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 2015	Justin Hibbits
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the Project nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ */
+
 /* Author: Domen Puncer <domen@cba.si>.  License: WTFPL, see file LICENSE */
 #include <drivers/ds2482_1w.h>
 #include <drivers/1w.h>
@@ -34,20 +64,20 @@
 
 #if 0
 	virtual int triplet(int dir) = 0;
-	virtual int read() = 0;
-	virtual int write(uint8_t data) = 0;
+	virtual int i2c_read() = 0;
+	virtual int i2c_write(uint8_t data) = 0;
 	virtual int select() = 0;
 #endif
 
-int chaos::ds2482::chip_reset() const
+template <typename P>
+int chaos::ds2482<P>::chip_reset() const
 {
-	struct chaos::ds2482_data *chip = dev_softc;
-	const i2c_bus *parent = this->parent();
+	auto parent = this->parent();
 	uint8_t c = CMD_DEV_RESET;
 	uint8_t reply;
 	int r;
 
-	r = parent->write_read(this->addr(), &c, 1, &reply, 1);
+	r = parent->i2c_write_read(this->addr(), &c, 1, &reply, 1);
 	if (r < 0)
 		return r;
 
@@ -56,47 +86,49 @@ int chaos::ds2482::chip_reset() const
 	return -EINVAL;
 }
 
-int chaos::ds2482::set_read_ptr(uint8_t ptr) const
+template <typename P>
+int chaos::ds2482<P>::set_read_ptr(uint8_t ptr) const
 {
-	struct chaos::ds2482_data *chip = dev_softc;
 	uint8_t c[2];
 	int r;
 
 	c[0] = CMD_SET_READ_PTR;
 	c[1] = ptr;
-	r = dev_parent->write(this->addr(), c, 2);
+	r = this->parent()->i2c_write(this->addr(), c, 2);
 	if (r < 0)
 		return r;
 
 	return 0;
 }
 
-static int ds2482_write_config(chaos::ds2482 *self, uint8_t config)
+template <typename P>
+static int ds2482_write_config(chaos::ds2482<P> *self, uint8_t config)
 {
 	uint8_t c[2];
 	int r;
 
 	c[0] = CMD_WRITE_CONFIG;
 	c[1] = ~config << 4 | config;
-	r = self->parent()->write(self->addr(), c, 2);
+	r = self->parent()->i2c_write(self->addr(), c, 2);
 	if (r < 0)
 		return r;
 
 	return 0;
 }
 
-int chaos::ds2482::reset() const
+template <typename P>
+int chaos::ds2482<P>::w1_reset() const
 {
 	uint8_t c = CMD_1W_RESET;
 	int r;
 
-	r = parent()->write(this->addr(), &c, 1);
+	r = this->parent()->i2c_write(this->addr(), &c, 1);
 	if (r < 0)
 		return r;
 
 	/* busy polling */
 	while (1) {
-		r = parent()->read(this->addr(), &c, 1);
+		r = this->parent()->i2c_read(this->addr(), &c, 1);
 		if (r < 0)
 			return r;
 		if ((c & STATUS_1WB) == 0)
@@ -105,19 +137,20 @@ int chaos::ds2482::reset() const
 	return 0;
 }
 
-// bit == 1 also means read time slot
-static int ds2482_1w_single_bit(chaos::ds2482 *master, int bit)
+// bit == 1 also means i2c_read time slot
+template <typename P>
+static int ds2482_1w_single_bit(chaos::ds2482<P> *master, int bit)
 {
 	uint8_t c[2] = { CMD_1W_BIT, static_cast<uint8_t>(bit<<7) };
 	int r;
 
-	r = master->parent()->write(master->addr(), c, 2);
+	r = master->parent()->i2c_write(master->addr(), c, 2);
 	if (r < 0)
 		return r;
 
 	/* busy polling */
 	while (1) {
-		r = master->parent()->read(master->addr(), c, 1);
+		r = master->parent()->i2c_read(master->addr(), c, 1);
 		if (r < 0)
 			return r;
 		if ((c[0] & STATUS_1WB) == 0)
@@ -126,18 +159,19 @@ static int ds2482_1w_single_bit(chaos::ds2482 *master, int bit)
 	return !!(c[0] & STATUS_SBR);
 }
 
-int chaos::ds2482::write(uint8_t data) const
+template <typename P>
+int chaos::ds2482<P>::w1_write(uint8_t data) const
 {
 	uint8_t c[2] = { CMD_1W_WRITE, data };
 	int r;
 
-	r = parent()->write(this->addr(), c, 2);
+	r = this->parent()->i2c_write(this->addr(), c, 2);
 	if (r < 0)
 		return r;
 
 	/* busy polling */
 	while (1) {
-		r = parent()->read(this->addr(), c, 1);
+		r = this->parent()->i2c_read(this->addr(), c, 1);
 		if (r < 0)
 			return r;
 		if ((c[0] & STATUS_1WB) == 0)
@@ -146,18 +180,19 @@ int chaos::ds2482::write(uint8_t data) const
 	return 0;
 }
 
-int chaos::ds2482::read() const
+template <typename P>
+int chaos::ds2482<P>::w1_read() const
 {
 	uint8_t c = CMD_1W_READ;
 	int r;
 
-	r = parent()->write(addr(), &c, 1);
+	r = this->parent()->i2c_write(this->addr(), &c, 1);
 	if (r < 0)
 		return r;
 
 	/* busy polling */
 	while (1) {
-		r = parent()->read(this->addr(), &c, 1);
+		r = this->parent()->i2c_read(this->addr(), &c, 1);
 		if (r < 0)
 			return r;
 		if ((c & STATUS_1WB) == 0)
@@ -168,7 +203,7 @@ int chaos::ds2482::read() const
 	if (r < 0)
 		return r;
 
-	r = parent()->read(addr(), &c, 1);
+	r = this->parent()->i2c_read(this->addr(), &c, 1);
 	if (r < 0)
 		return r;
 
@@ -176,18 +211,19 @@ int chaos::ds2482::read() const
 }
 
 /* dir - 0/1 direction to take in case of device conflict */
-int chaos::ds2482::triplet(int dir) const
+template <typename P>
+int chaos::ds2482<P>::w1_triplet(int dir) const
 {
 	uint8_t c[2] = { CMD_1W_TRIPLET, static_cast<uint8_t>(dir<<7) };
 	int r;
 
-	r = parent()->write(addr(), c, 2);
+	r = this->parent()->i2c_write(this->addr(), c, 2);
 	if (r < 0)
 		return r;
 
 	/* busy polling */
 	while (1) {
-		r = parent()->read(addr(), c, 1);
+		r = this->parent()->i2c_read(this->addr(), c, 1);
 		if (r < 0)
 			return r;
 		if ((c[0] & STATUS_1WB) == 0)
@@ -213,10 +249,10 @@ int chaos::ds2482::triplet(int dir) const
 	return dir;
 }
 
-int chaos::ds2482::init() const
+template <typename P>
+int chaos::ds2482<P>::init() const
 {
-	//struct chaos::ds2482_data *chip = master->dev_softc;
-	int r = reset();
+	int r = w1_reset();
 	if (r < 0)
 		return r;
 	return 0;

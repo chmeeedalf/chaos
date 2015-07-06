@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014	Justin Hibbits
+ * Copyright (c) 2015	Justin Hibbits
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,34 +29,41 @@
  */
 
 #include <config.h>
-#include <sys/thread.h>
+#include <chaos/bsp.h>
+#include <chaos/list.h>
+#include <chaos/thread.h>
 
 #include <stdio.h>
 #include <util/shell.h>
 
-/* Arbitrary.  Total stack+heap == 2kB. */
-__THREAD("chaos_kernel",nullptr,0,512,10240,0,chaos_kernel);
+extern chaos::thread sys_threads[];
+extern chaos::thread sys_threads_end;
 
-const thread_t *curthread = &chaos_kernel;
-static thread_t dynamic_threads[MAX_DYNAMIC_THREADS];
-extern thread_t sys_threads[];
-extern thread_t sys_threads_end;
+namespace chaos {
+/* Arbitrary.  Total stack+heap == 2kB. */
+NAMED_THREAD(chaos_kernel, "chaos kernel",nullptr,0,512,8192,0);
+
+const thread *curthread = &chaos_kernel;
+static thread dynamic_threads[MAX_DYNAMIC_THREADS];
+
+static list<thread::run> run_queue;
 
 void
 thread_init_os(void)
 {
+	bsp::set_systick(CHAOS_SCHED_TICK);
 }
 
-thread_t *
-thread_create(thread_t *thr_template)
+thread *
+thread_create(thread *thr_template)
 {
 	return nullptr;
 }
 
-thread_t *
-thread_find_by_tid(int tid)
+thread *
+thread::find_by_tid(int tid)
 {
-	thread_t *td = &sys_threads[0];
+	thread *td = &sys_threads[0];
 
 	for (; td != &sys_threads_end; td++) {
 		if (td->thr_run->thr_tid == tid)
@@ -74,10 +81,15 @@ thread_find_by_tid(int tid)
 	return nullptr;
 }
 
+void
+thread::start(void) const
+{
+}
+
 static int
 thread_show(int tid)
 {
-	thread_t *td = thread_find_by_tid(tid);
+	thread *td = thread::find_by_tid(tid);
 	
 	if (td == nullptr) {
 		iprintf("No thread matching TID %d\n\r", tid);
@@ -91,18 +103,40 @@ thread_show(int tid)
 static int
 thread_list(void)
 {
-	thread_t *i;
+	thread *i;
 	iprintf("NAME\n");
 	for (i = &sys_threads[0]; i != &sys_threads_end; i++) {
-		iprintf("%s\n\r", i->thr_name);
+		iprintf("% 8d\t%s\n\r", i->thr_run->thr_tid, i->thr_name);
 	}
 	for (int t = 0; t < MAX_DYNAMIC_THREADS; t++) {
 		if (dynamic_threads[t].thr_name != nullptr)
-			iprintf("%s\n\r", i->thr_name);
+			iprintf("% 8d\t%s\n\r", i->thr_run->thr_tid, i->thr_name);
 	}
 	return 0;
+}
+
+void
+sched_run(void)
+{
+	thread_init_os();
+	bsp::systick_enable();
+}
+
+void
+sched_tick(void)
+{
+	iprintf("tick\n");
 }
 
 CMD_FAMILY(thread);
 CMD(thread, show, thread_show);
 CMD(thread, list, thread_list);
+}
+
+extern "C" {
+void
+chaos_systick(void)
+{
+	chaos::sched_tick();
+}
+}

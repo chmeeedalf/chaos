@@ -56,7 +56,7 @@
 //
 //*****************************************************************************
 #define SYS_LIGHTWEIGHT_PROT            1           // default is 0
-#define NO_SYS                          1           // default is 0
+//#define NO_SYS                          1           // default is 0
 //#define MEMCPY(dst,src,len)             memcpy(dst,src,len)
 //#define SMEMCPY(dst,src,len)            memcpy(dst,src,len)
 

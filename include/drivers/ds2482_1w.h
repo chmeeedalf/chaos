@@ -8,20 +8,21 @@ namespace chaos {
 class ds2482_data : public i2c_device_softc {
 };
 
-class ds2482	:	public i2c_device<ds2482_data>,onewire_bus {
+template <typename P>
+class ds2482	:	public i2c_device<ds2482_data,P>/*,onewire_bus*/ {
 	public:
+	using i2c_device<ds2482_data,P>::i2c_device;
+	template <typename U, typename V>
+	static_assert(__is_base_of(chaos::i2c_bus<U, V>, P), "Parent must be an i2c bus");
 	/* device */
 	virtual int init() const;
-	virtual int destroy() const;
-	virtual int probe() const;
-	virtual int show() const;
+	//virtual int show() const;
 
 	/* onewire_bus */
-	virtual int reset() const;
-	virtual int triplet(int dir) const;
-	virtual int read() const;
-	virtual int write(uint8_t data) const;
-	virtual int select() const;
+	virtual int w1_reset() const;
+	virtual int w1_triplet(int dir) const;
+	virtual int w1_read() const;
+	virtual int w1_write(uint8_t data) const;
 	private:
 	int set_read_ptr(uint8_t ptr) const;
 	int chip_reset() const;

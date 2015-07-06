@@ -9,11 +9,10 @@ CFLAGS+=-DPART_TM4C1294NCPDT
 CFLAGS+=-I${.CURDIR}
 CFLAGS+=-I${.CURDIR}/include
 CFLAGS+=-Dgcc -std=gnu11
-# Only while using FreeRTOS
-CFLAGS+=-I${.CURDIR}/3rdparty/FreeRTOS/Source/include -DRTOS_FREERTOS
-CFLAGS+=-I${.CURDIR}/3rdparty/FreeRTOS/Source/portable/GCC/ARM_CM4F
+CFLAGS+=-I${.CURDIR}/3rdparty/lwIP/src/include
 
 CXXFLAGS=${CFLAGS} -std=gnu++11 -fno-exceptions -fno-rtti
+CXXFLAGS+=-ffreestanding
 LDFLAGS+=-L${LIBC_SRCTOP} --gc-sections
 
 PROG=hello.axf

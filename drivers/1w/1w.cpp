@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 2015	Justin Hibbits
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the Project nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ */
+
 /* Author: Domen Puncer <domen@cba.si>.  License: WTFPL, see file LICENSE */
 #include <drivers/1w.h>
 #include <errno.h>
@@ -48,23 +78,23 @@ static uint8_t crc8r(uint8_t *p, int len)
 }
 
 /* reads rom (family, addr, crc) from one device, in case of multiple this command is an error */
-int chaos::onewire_bus::read_rom(w1_addr_t *addr) const
+int chaos::onewire_bus::w1_read_rom(w1_addr_t *addr) const
 {
 	int r;
 	int i;
 
-	r = this->reset();
+	r = this->w1_reset();
 	if (r < 0) {
 		return r;
 	}
 
-	r = this->write(W1_READ_ROM);
+	r = this->w1_write(W1_READ_ROM);
 	if (r < 0) {
 		return r;
 	}
 
 	for (i=0; i<sizeof(addr->bytes); i++) {
-		r = this->read();
+		r = this->w1_read();
 		if (r < 0) {
 			return r;
 		}
@@ -79,23 +109,23 @@ int chaos::onewire_bus::read_rom(w1_addr_t *addr) const
 }
 
 /* selects one device, and puts it into transport layer mode */
-int chaos::onewire_bus::match_rom(w1_addr_t addr) const
+int chaos::onewire_bus::w1_match_rom(w1_addr_t addr) const
 {
 	int r;
 	int i;
 
-	r = this->reset();
+	r = this->w1_reset();
 	if (r < 0) {
 		return r;
 	}
 
-	r = this->write(W1_MATCH_ROM);
+	r = this->w1_write(W1_MATCH_ROM);
 	if (r < 0) {
 		return r;
 	}
 
 	for (i=0; i<sizeof(addr.bytes); i++) {
-		r = this->write(addr.bytes[i]);
+		r = this->w1_write(addr.bytes[i]);
 		if (r < 0) {
 			return r;
 		}
@@ -105,15 +135,15 @@ int chaos::onewire_bus::match_rom(w1_addr_t addr) const
 }
 
 /* in case there's only one device on bus, skip rom is used to put it into transport layer mode */
-int chaos::onewire_bus::skip_rom() const
+int chaos::onewire_bus::w1_skip_rom() const
 {
 	int r;
 
-	this->reset();
-	return this->write(W1_SKIP_ROM);
+	this->w1_reset();
+	return this->w1_write(W1_SKIP_ROM);
 }
 
-int chaos::onewire_bus::scan(w1_addr_t addrs[], int num) const
+int chaos::onewire_bus::w1_scan(w1_addr_t addrs[], int num) const
 {
 	int current = 0;
 	w1_addr_t last_addr;
@@ -127,9 +157,9 @@ int chaos::onewire_bus::scan(w1_addr_t addrs[], int num) const
 		int conflict = 64;
 		memset(addr.bytes, 0, sizeof(addr.bytes));
 
-		this->reset();
+		this->w1_reset();
 
-		this->write(W1_SEARCH_ROM);
+		this->w1_write(W1_SEARCH_ROM);
 		if (r < 0) {
 			return r;
 		}
@@ -139,7 +169,7 @@ int chaos::onewire_bus::scan(w1_addr_t addrs[], int num) const
 			if (last_conflict == bit)
 				b = 1;
 			
-			this->triplet(b);
+			this->w1_triplet(b);
 			if (r < 0) {
 				return r;
 			}

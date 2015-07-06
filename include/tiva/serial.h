@@ -1,4 +1,4 @@
-#include <sys/device.h>
+#include <chaos/device.h>
 #include <mach/gpio.h>
 #include <gpio.h>
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014	Justin Hibbits
+ * Copyright (c) 2015	Justin Hibbits
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,6 @@
 #include <stdint.h>
 //#include <stdio.h>
 #include <drivers/ds18b20_1w.h>
-#include <sys/device.h>
 
 #define DS18B20_CONVERT	0x44
 #define DS18B20_READ_SCRATCHPAD 0xBE
@@ -41,17 +40,17 @@ int ds18b20::get_temp() const
 	uint8_t data[9];
 	int temp;
 
-	this->dev_parent->reset();
-	this->dev_parent->skip_rom();
+	this->dev_parent->w1_reset();
+	this->dev_parent->w1_skip_rom();
 	//w1_match_rom(parent, sc->sc_addr);
-	this->dev_parent->write(DS18B20_CONVERT);
+	this->dev_parent->w1_write(DS18B20_CONVERT);
 
-	while (this->dev_parent->read() == 0)
+	while (this->dev_parent->w1_read() == 0)
 		;
-	this->dev_parent->write(DS18B20_READ_SCRATCHPAD);
+	this->dev_parent->w1_write(DS18B20_READ_SCRATCHPAD);
 
 	for (int i = 0; i < 9; i++)
-		data[i] = this->dev_parent->read();
+		data[i] = this->dev_parent->w1_read();
 
 	temp = (data[1] << 8) | data[0];
 

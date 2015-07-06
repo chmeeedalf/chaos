@@ -1,7 +1,7 @@
 #ifndef _HD44780_H_
 #define _HD44780_H_
 
-#include <sys/device.h>
+#include <chaos/device.h>
 
 #define HD44780_CAPS_2LINES     (1<<0)
 #define HD44780_CAPS_5X10       (1<<1)

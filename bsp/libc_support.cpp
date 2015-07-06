@@ -28,52 +28,98 @@
  *
  */
 
-#ifndef _1W_H_
-#define _1W_H_
+#include <config.h>
 
+#include <reent.h>
+#include <errno.h>
+#include <sys/lock.h>
 #include <sys/types.h>
-#include <chaos/device.h>
+#include <chaos/thread.h>
 
-namespace chaos {
-typedef struct {
-	uint8_t bytes[8];
-} w1_addr_t;
+long __stack_chk_guard[8] = {0};
 
-/**
- * quick overview of 1-wire commands
- * READ_ROM - reads the 8-byte device signature (only one device on bus!)
- * SKIP_ROM - selects only one device on bus
- * MATCH_ROM - selects the device by signature (multiple devices on bus)
- * SEARCH_ROM - enumerates the devices on a bus.
- */
-class onewire_bus {
-	public:
-	virtual int w1_reset() const = 0;
-	virtual int w1_triplet(int dir) const = 0;
-	virtual int w1_read() const = 0;
-	virtual int w1_write(uint8_t data) const = 0;
-	/* reads rom (family, addr, crc) from one device, in case of multiple this command is an error */
-	int w1_read_rom(w1_addr_t *addr) const;
-	/* selects one device, and puts it into transport layer mode */
-	int w1_match_rom(w1_addr_t addr) const;
+long reqdiff;
+long heap_top;
+long hsize;
 
-	/* in case there's only one device on bus, skip rom is used to put it into transport layer mode */
-	int w1_skip_rom() const;
-
-	int w1_scan(w1_addr_t addrs[], int num) const;
-
-};
-
-class onewire_softc {
-	protected:
-	w1_addr_t addr;
-};
-
-class onewire_device : public chaos::device<onewire_softc, onewire_bus> {
-	public:
-		using chaos::device<onewire_softc, onewire_bus>::device;
-};
+void
+__stack_chk_fail(void)
+{
+	*(volatile uint32_t *)0 = 0; /* Force a hard fault */
 }
 
+using chaos::curthread;
 
-#endif
+void
+*_sbrk_r(struct _reent *reent, ptrdiff_t diff)
+{
+	void *ret;
+
+	diff = KERN_ROUND(diff, sizeof(uint32_t));
+
+	reqdiff = diff;
+	heap_top = curthread->thr_run->thr_heap_top;
+	hsize = curthread->thr_hsize;
+	if (curthread->thr_run->thr_heap_top + diff < 0) {
+		reent->_errno = EINVAL;
+		ret = (void *)-1;
+	}
+	else if (curthread->thr_run->thr_heap_top + diff > (curthread->thr_hsize / sizeof(uint32_t))) {
+		reent->_errno = ENOMEM;
+		ret = (void *)-1;
+	}
+	else {
+		ret = &curthread->thr_heap[curthread->thr_run->thr_heap_top];
+		curthread->thr_run->thr_heap_top += diff;
+	}
+
+	return ret;
+}
+
+int
+_fstat_r(struct _reent *reent, int fd, struct stat *sb)
+{
+	reent->_errno = ENOSYS;
+	return -1;
+}
+
+int
+_close_r(struct _reent *reent, int fd)
+{
+	reent->_errno = ENOSYS;
+	return -1;
+}
+
+int
+_isatty_r(struct _reent *reent, int fd)
+{
+	reent->_errno = ENOSYS;
+	return -1;
+}
+
+off_t
+_lseek_r(struct _reent *reent, int fd, off_t offset, int whence)
+{
+	reent->_errno = ENOSYS;
+	return -1;
+}
+
+int
+_read_r(struct _reent *reent, int fd, void *buf, size_t nb)
+{
+	reent->_errno = ENOSYS;
+	return -1;
+}
+
+ssize_t
+_write_r(struct _reent *reent, int fd, const void *buf, size_t nb)
+{
+	reent->_errno = ENOSYS;
+	return -1;
+}
+
+struct _reent *
+_getreent(void)
+{
+	return &curthread->thr_run->thr_reent;
+}

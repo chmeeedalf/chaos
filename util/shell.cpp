@@ -1,38 +1,38 @@
-#if 0
+/*
+ * Copyright (c) 2015	Justin Hibbits
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the Project nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ */
 
-state list:
-
-command table:
-	[cmd] [help] [processor] [next_state]
-
-options list:
-	[option] [help] [optarg name] [optarg type] [flags]
-
-optarg types:
-	{u,}integer
-	string (quoted)
-	enumeration
-	float
-
-optarg flags:
-	multiple (sets array)
-
-Processor:
-	int (proc *)(argc, argv)
-		- argc - number of arguments in array (at least 1)
-		- argv - argument vector:
-			- vec 1 - "*command*" (array)
-			- rest: args, indexed by optarg. Options that can have multiple instances
-			  have an array as the second parameter
-#endif
-
-extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-}
 
-#include <sys/kernel.h>
+#include <chaos/kernel.h>
 #include <util/shell.h>
 
 #define ESC 27
@@ -40,7 +40,8 @@ extern "C" {
 using namespace chaos::shell;
 
 namespace chaos {
-	namespace shell {
+
+namespace shell {
 enum sh_state {
 	SH_PREINIT=0,
 	SH_INIT,
@@ -121,13 +122,6 @@ sh_print_help(void)
 }
 
 static int
-sh_print_help2(int x, int y)
-{
-	iprintf("x: %d, y: %d\n\r", x, y);
-	return 0;
-}
-
-static int
 sh_max_command_args()
 {
 	// TODO: make this determine either at compile or runtime
@@ -178,8 +172,6 @@ get_line(const char *prompt, char *buf, int len, struct shell_state *state)
 	int used = 0;
 	char c;
 
-	setvbuf(stdin, nullptr, _IONBF, 0);
-	setvbuf(stdout, nullptr, _IONBF, 0);
 	fwrite(prompt, 1, strlen(prompt), stdout);
 	memset(buf, 0, len);
 	state->sh_parse_state = SH_INIT;
@@ -229,6 +221,8 @@ int shell_init(struct shell_state *parser)
 {
 	memset(parser, 0, sizeof(*parser));
 	parser->sh_parse_state = SH_INIT;
+	setvbuf(stdin, nullptr, _IONBF, 0);
+	setvbuf(stdout, nullptr, _IONBF, 0);
 	return (0);
 }
 
@@ -242,6 +236,7 @@ int shell(const char *prompt)
 	int argm = sh_max_command_args();
 	int argc;
 
+	shell_init(&parser);
 	while (1) {
 		chaos::shell::get_line(prompt, buf, 119, &parser);
 		if (buf[0] == '\0')
@@ -273,10 +268,10 @@ char *shell_tokenize(char **line, char *septok)
 {
 	return nullptr;
 }
-}
-}
+
+} // namespace shell
+} // namespace chaos
 
 const struct sh_cmd_family<void*> __sh_commands_end __attribute__((section(".commands_end"))) = { .type = SH_FAMILY, .name = nullptr };
 CMD_FAMILY();
 CMD(,help,chaos::shell::sh_print_help);
-CMD(,help2,chaos::shell::sh_print_help2);

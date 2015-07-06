@@ -1,5 +1,5 @@
 /* Author: Domen Puncer <domen@cba.si>.  License: WTFPL, see file LICENSE */
-#include <sys/kernel.h>
+#include <chaos/kernel.h>
 #include <stdio.h>
 #include <drivers/hd44780.h>
 #include <gpio.h>

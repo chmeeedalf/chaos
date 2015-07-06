@@ -10,7 +10,7 @@
 #include <driverlib/sysctl.h>
 #include <driverlib/uart.h>
 #include <tiva/serial.h>
-#include <sys/kernel.h>
+#include <chaos/kernel.h>
 
 static int tiva_serial_config(tiva::serial_softc *sc);
 
@@ -68,7 +68,7 @@ tiva::serial::init() const
 {
 	struct tiva::serial_softc *sc = dev_softc;
 
-	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0 + sc->uart);
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0 + 1000 * sc->uart);
 	MAP_UARTEnable(UART0_BASE + (sc->uart << 12));
 
     tiva_serial_config(this->dev_softc);
@@ -80,8 +80,10 @@ static int
 tiva_serial_config(tiva::serial_softc *sc)
 {
 
-	MAP_UARTConfigSetExpClk(UART0_BASE, get_freq(), sc->baudrate,
-        (UART_CONFIG_WLEN_8|UART_CONFIG_STOP_ONE|UART_CONFIG_PAR_NONE));
+	// TODO: Check pin configuration
+	MAP_UARTConfigSetExpClk(UART0_BASE + 0x1000 * sc->uart,
+		get_freq(), sc->baudrate,
+		(UART_CONFIG_WLEN_8|UART_CONFIG_STOP_ONE|UART_CONFIG_PAR_NONE));
 
 	return 0;
 }

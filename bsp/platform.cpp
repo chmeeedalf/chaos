@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/kernel.h>
+#include <chaos/kernel.h>
 #include "inc/hw_sysctl.h"
 #include "driverlib/rom.h"
 #include "driverlib/rom_map.h"
@@ -12,6 +12,25 @@
 #define SYSCTL_DELAY_TICKS	3
 
 static uint32_t sys_clk;
+
+namespace bsp {
+void set_systick(int hz)
+{
+	MAP_SysTickPeriodSet(sys_clk/hz);
+}
+
+void systick_enable()
+{
+	MAP_SysTickIntEnable();
+	MAP_SysTickEnable();
+}
+
+void systick_disable()
+{
+	MAP_SysTickDisable();
+}
+
+}
 
 void
 set_freq(uint32_t mhz)
@@ -34,14 +53,14 @@ udelay(uint32_t delay)
 static int
 cmd_peek(int addr)
 {
-	iprintf("%x: %x\n\r", addr, *(int *)addr);
+	iprintf("%x: %x\n\r", addr, *(volatile int *)addr);
 	return 0;
 }
 
 static int
 cmd_poke(int addr, int val)
 {
-	*(int *)addr = val;
+	*(volatile int *)addr = val;
 	return 0;
 }
 CMD_FAMILY(memory);

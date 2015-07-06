@@ -32,14 +32,6 @@
 #ifndef __ARCH_SYS_ARCH_H__
 #define __ARCH_SYS_ARCH_H__
 
-#if RTOS_FREERTOS
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "semphr.h"
-#define portQUEUE_OVERHEAD_BYTES 1  // Constant, used for consistency
-#endif /* RTOS_FREERTOS */
-
 /* Find the size of the largest required mbox. */
 #define MAX1 ((TCPIP_MBOX_SIZE > DEFAULT_RAW_RECVMBOX_SIZE) ? \
               TCPIP_MBOX_SIZE : DEFAULT_RAW_RECVMBOX_SIZE)
@@ -50,23 +42,24 @@
 #define MBOX_MAX ((MAX3 > DEFAULT_ACCEPTMBOX_SIZE) ? MAX3 : \
                   DEFAULT_ACCEPTMBOX_SIZE)
 
+struct queue;
 ///* A structure to hold the variables for a sys_sem_t. */
 typedef struct {
-  xQueueHandle queue;
-  signed char buffer[sizeof(void *) + portQUEUE_OVERHEAD_BYTES];
+  struct queue *queue;
+  signed char buffer[sizeof(void *)];
 } sem_t;
 
 /* A structure to hold the variables for a sys_mbox_t. */
 typedef struct {
-  xQueueHandle queue;
-  signed char buffer[(sizeof(void *) * MBOX_MAX) + portQUEUE_OVERHEAD_BYTES];
+  struct queue *queue;
+  signed char buffer[(sizeof(void *) * MBOX_MAX)];
 } mbox_t;
 
 /* Typedefs for the various port-specific types. */
 typedef mbox_t sys_mbox_t;
 typedef sem_t sys_sem_t;
 typedef sem_t sys_mutex_t;
-typedef xTaskHandle sys_thread_t;
+typedef struct thread *sys_thread_t;
 
 /* The value for an unallocated mbox. */
 #define SYS_MBOX_NULL       0

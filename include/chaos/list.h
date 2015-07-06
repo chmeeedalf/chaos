@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014	Justin Hibbits
+ * Copyright (c) 2015	Justin Hibbits
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,76 +28,45 @@
  *
  */
 
-#include <chaos/device.h>
+#ifndef __SYS_LIST_H__
+#define __SYS_LIST_H__
 
-#include <stdio.h>
-#include <string.h>
-#include <util/shell.h>
-
-extern const chaos::device<void,const chaos::device<void,void>> *sys_devices, *sys_devices_end;
 namespace chaos {
+template <class T>
+class list {
+	public:
+		class node {
+			friend class list<T>;
+			public:
+				constexpr node() {}
+			protected:
+				node *node_next;
+				node *node_prev;
+		};
 
-int
-initialize_device(const chaos::device<void,const chaos::device<void,void>> *dev)
-{
-	if (dev->parent() != NULL) {
-		initialize_device(reinterpret_cast<decltype(dev)>(dev->parent()));
-	}
+	/* Public function interface. */
+		void add_head(node *)
+		T &pop_head();
+		void add_tail(node *);
+		T &pop_tail();
+		void insert(node *n, node *before); // Insert after the 'before' node.
+		void remove(node *at)
+		{
+			// CRITICAL ENTER
+			if (at == head)
+				head = head->next;
+			else
+				at->previous->next = at->next;
+			if (at == tail)
+				tail = tail->previous;
+			else
+				at->next->previous = at->previous;
+			// CRITICAL EXIT
+		}
 
-	if (dev->dev_run->state == chaos::device_state::DEVICE_PREINIT) {
-		dev->init();
-		dev->dev_run->state = chaos::device_state::DEVICE_INITIALIZE;
-	}
-	return 0;
+	private:
+		node *head;
+		node *tail;
+};
 }
-
-int
-initialize_devices(void)
-{
-	const chaos::device<void,const chaos::device<void,void>> **d = &sys_devices;
-
-	for (; d < &sys_devices_end; d++) {
-		initialize_device(*d);
-	}
-	return 0;
-}
-
-static int
-list_devices(void)
-{
-	auto d = &sys_devices;
-
-	for (; d < &sys_devices_end; d++) {
-		iprintf("%s\n\r", (*d)->name());
-	}
-	return 0;
-}
-
-const chaos::device<void,const chaos::device<void,void>> *
-find_device(const char *name)
-{
-	for (auto d = &sys_devices; d < &sys_devices_end; d++) {
-		if (strcmp(name, (*d)->name()) == 0)
-			return *d;
-	}
-	return nullptr;
-}
-
-static int
-device_show(const char *devname)
-{
-	auto dev = find_device(devname);
-
-	if (dev == NULL) {
-		iprintf("No such device: %s\r\n", devname);
-		return (1);
-	}
-
-	dev->show();
-	return (0);
-}
-
-CMD_FAMILY(device);
-CMD(device, list, list_devices);
-CMD(device, show, device_show);
-}
+#endif
