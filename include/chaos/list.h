@@ -45,7 +45,7 @@ class list {
 		};
 
 	/* Public function interface. */
-		void add_head(node *)
+		void add_head(node *);
 		T &pop_head();
 		void add_tail(node *);
 		T &pop_tail();
