@@ -36,16 +36,14 @@
 #include <sys/types.h>
 #include <chaos/thread.h>
 
+extern "C" {
 long __stack_chk_guard[8] = {0};
-
-long reqdiff;
-long heap_top;
-long hsize;
 
 void
 __stack_chk_fail(void)
 {
 	*(volatile uint32_t *)0 = 0; /* Force a hard fault */
+}
 }
 
 using chaos::curthread;
@@ -57,9 +55,6 @@ void
 
 	diff = KERN_ROUND(diff, sizeof(uint32_t));
 
-	reqdiff = diff;
-	heap_top = curthread->thr_run->thr_heap_top;
-	hsize = curthread->thr_hsize;
 	if (curthread->thr_run->thr_heap_top + diff < 0) {
 		reent->_errno = EINVAL;
 		ret = (void *)-1;
