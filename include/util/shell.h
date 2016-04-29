@@ -208,7 +208,7 @@ gen_shell_cmd(int (*func)(Args ...))
 		.type = chaos::shell::SH_FAMILY,\
 		.name = #fname,\
 		.cmd_start = &__CONCAT(__sh_,__CONCAT(fname,__start))}};
-#define CMD(fname,c,f,...)	\
+#define CMD(fname,c,f)	\
 	const union chaos::shell::sh_cmd_family_un<decltype(f)> __CONCAT(__sh_,__CONCAT(__CONCAT(fname,_),c)) __attribute__((section(".command."#fname".a."#c))) __attribute__((used)) = {.cmd = { .type = chaos::shell::SH_COMMAND, .name = #c, .func = chaos::shell::gen_shell_cmd(f), .real_func = f, .num_args = chaos::shell::count_args(f)}};
 }
 }
