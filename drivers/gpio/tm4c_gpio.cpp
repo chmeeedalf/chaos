@@ -5,14 +5,17 @@
 #include <inc/hw_gpio.h>
 #include <inc/hw_memmap.h>
 #include <driverlib/gpio.h>
-//#include <driverlib/rom.h>
+#include <driverlib/rom.h>
 #include <driverlib/rom_map.h>
 #include <mach/gpio.h>
+#include <stdio.h>
+#include <util/shell.h>
 
 #define TO_BASE(pin)	(GPIO_PORTA_AHB_BASE + (((pin & 0xF0) - 0x10) << 8))
 #define TO_PIN(pin)		(1 << (pin & 0x0F))
 
-void gpio_init(int pin, enum gpio_mode mode, int value)
+void
+gpio_init(int pin, enum gpio_mode mode, int value)
 {
 	uint32_t base = TO_BASE(pin);
 	pin = 1 << (pin & 0x0F);
@@ -49,14 +52,42 @@ void gpio_init(int pin, enum gpio_mode mode, int value)
 	}
 }
 
-void gpio_set(int pin, int value)
+void
+gpio_set(int pin, int value)
 {
 	value = !!value;
 
 	MAP_GPIOPinWrite(TO_BASE(pin), TO_PIN(pin), (value << TO_PIN(pin)));
 }
 
-int gpio_get(int pin)
+int
+gpio_get(int pin)
 {
 	return MAP_GPIOPinRead(TO_BASE(pin), TO_PIN(pin));
 }
+
+static int
+gpio_configure_pin(int pin, int mode, int value)
+{
+	gpio_init(pin, (enum gpio_mode)mode, value);
+	return (0);
+}
+
+static int
+gpio_cli_get(int pin)
+{
+	iprintf("%d\n", gpio_get(pin));
+	return (0);
+}
+
+static int
+gpio_cli_set(int pin, int value)
+{
+	gpio_set(pin, value);
+	return (0);
+}
+
+CMD_FAMILY(gpio);
+CMD(gpio, configure, gpio_configure_pin);
+CMD(gpio, set, gpio_cli_set);
+CMD(gpio, get, gpio_cli_get);
