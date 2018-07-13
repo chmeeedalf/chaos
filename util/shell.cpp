@@ -49,6 +49,10 @@ enum sh_state {
 	SH_ESCBR
 };
 
+extern "C" {
+extern const union sh_cmd_family_un<void> __sh_commands_start;
+}
+
 static char parse_escape(char ch, struct shell_state *state)
 {
 	switch (state->sh_parse_state) {
@@ -102,15 +106,11 @@ static char parse_escape(char ch, struct shell_state *state)
 	return (ch);
 }
 
-extern "C" {
-	union sh_cmd_family_un<void> __sh_commands_start;
-}
-
-static int
-sh_print_help(void)
+int
+sh_print_help(const char *name, const union sh_cmd_family_un<void> *family)
 {
 	puts("Available commands:\r");
-	for (const union sh_cmd_family_un<void> *commands = &__sh_commands_start; commands->name != NULL; commands++)
+	for (auto *commands = family; commands->name != NULL; commands++)
 		if (commands->name[0] != '\0') {
 			iprintf("%s", commands->family.name);
 			if (commands->type == SH_FAMILY ||
@@ -201,8 +201,6 @@ get_line(const char *prompt, char *buf, int len, struct shell_state *state)
 					c = 0;
 					break;
 			}
-			if (c == 0)
-				continue;
 			if (used == len) {
 				putc('\a', stdout);
 				continue;
@@ -238,7 +236,7 @@ int shell(const char *prompt)
 
 	shell_init(&parser);
 	while (1) {
-		chaos::shell::get_line(prompt, buf, 119, &parser);
+		get_line(prompt, buf, sizeof(buf), &parser);
 		if (buf[0] == '\0')
 			continue;
 
@@ -273,5 +271,11 @@ char *shell_tokenize(char **line, char *septok)
 } // namespace chaos
 
 const struct sh_cmd_family<void*> __sh_commands_end __attribute__((section(".commands_end"))) = { .type = SH_FAMILY, .name = nullptr };
-CMD_FAMILY();
-CMD(,help,chaos::shell::sh_print_help);
+_CMD_FAMILY();
+namespace {
+static int
+sh_print_root_help(void) {
+	return chaos::shell::sh_print_help("", &__sh_commands_start);
+}
+CMD(,help,sh_print_root_help);
+}

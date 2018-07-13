@@ -98,6 +98,8 @@ union sh_cmd_family_un {
 	struct sh_cmd<T> cmd;
 };
 
+int sh_print_help(const char *, const union sh_cmd_family_un<void> *);
+
 /*
 A little about the following macros:
 
@@ -201,7 +203,7 @@ gen_shell_cmd(int (*func)(Args ...))
 	return do_shell_command<Args...>;
 }
 
-#define CMD_FAMILY(fname) \
+#define _CMD_FAMILY(fname) \
 	const union chaos::shell::sh_cmd_family_un<void> __CONCAT(__sh_,__CONCAT(fname,__start)) __attribute__((section(".command."#fname".A"))) __attribute__((used))= {.cmd = { .type = chaos::shell::SH_FAMILY, .name = "" }}; \
 	const union chaos::shell::sh_cmd_family_un<void> __CONCAT(__sh_,__CONCAT(fname,__end)) __attribute__((section(".command."#fname".z"))) __attribute__((used))= {.cmd = { .type = chaos::shell::SH_FAMILY, .name = nullptr }}; \
 	const union chaos::shell::sh_cmd_family_un<void> __CONCAT(__sh_family_,fname) __attribute__((section(".commands"))) __attribute__((used))= { .family = { \
@@ -209,6 +211,11 @@ gen_shell_cmd(int (*func)(Args ...))
 		.name = #fname,\
 		.cmd_start = &__CONCAT(__sh_,__CONCAT(fname,__start))}};
 #define CMD(fname,c,f)	\
-	const union chaos::shell::sh_cmd_family_un<decltype(f)> __CONCAT(__sh_,__CONCAT(__CONCAT(fname,_),c)) __attribute__((section(".command."#fname".a."#c))) __attribute__((used)) = {.cmd = { .type = chaos::shell::SH_COMMAND, .name = #c, .func = chaos::shell::gen_shell_cmd(f), .real_func = f, .num_args = chaos::shell::count_args(f)}};
+	const union chaos::shell::sh_cmd_family_un<decltype(f)> __CONCAT(__sh_,__CONCAT(__CONCAT(fname,_),c)) __attribute__((section(".command."#fname".a."#c))) __attribute__((used)) = {.cmd = { .type = chaos::shell::SH_COMMAND, .name = #c, .func = chaos::shell::gen_shell_cmd(f), .real_func = f, .num_args = chaos::shell::count_args(f)}}
+
+#define	CMD_FAMILY(fname) \
+	_CMD_FAMILY(fname); \
+	static int __CONCAT(fname,__help)(void) { return chaos::shell::sh_print_help(#fname, &__CONCAT(__sh_,__CONCAT(fname,__start))); } \
+	CMD(fname, help, __CONCAT(fname, __help))
 }
 }
