@@ -58,14 +58,6 @@ int shell(const char *prompt);
 typedef char *string;
 
 enum {
-	sh_term_type = -1,
-	sh_void_type,
-	sh_int_type,
-	sh_char_type,
-	sh_string_type,
-};
-
-enum {
 	SH_COMMAND,
 	SH_FAMILY,
 };
@@ -100,20 +92,6 @@ union sh_cmd_family_un {
 
 int sh_print_help(const char *, const union sh_cmd_family_un<void> *);
 
-/*
-A little about the following macros:
-
-CMD_FAMILY() defines a command family (top-level command).  At some point, I plan to have nested families, but for now that's not the case.
-
-We use a number of custom section names:
-
-.commands	- Top level command structure.
-.command.<command>.A	- Starting section (linker will place immediately before all commands in a family)
-.command.<command>.a.<subcommand>	- Each command is in here.  Alphabetic order
-.command.<command>.z				- Command terminator.
-
-*/
-
 namespace {
 	template <typename T>
 	T extract_arg(const char *arg);
@@ -136,7 +114,7 @@ namespace {
 	template <>
 	bool validate_cmd_arg<int>(const char *arg) {
 		char *end;
-		int retval = strtol(arg, &end, 0);
+		strtol(arg, &end, 0);
 		return (end != arg && *end == '\0' && errno == 0);
 	}
 
@@ -146,25 +124,70 @@ namespace {
 	template <>
 	bool validate_cmd_arg<char>(const char *arg) { return (*arg != '\0'); }
 
-	template <typename T>
-	int get_arg_type(T unused) { return sh_void_type; }
-
-	template <>
-	constexpr int get_arg_type(const char *unused) { return sh_string_type; }
-
-	template <>
-	constexpr int get_arg_type(int unused) { return sh_int_type; }
-
-	template <>
-	constexpr int get_arg_type(char unused) { return sh_char_type; }
-
 	template <typename... Args>
 	constexpr int count_args(int (*func)(Args...)) { return sizeof...(Args); }
 
-#if 0
+	template<int>
+	int
+	validate_args(const char * const *args)
+	{
+		return (-1);
+	}
+
 	template <>
-	constexpr int get_arg_type(void) { return sh_void_type; }
-#endif
+	int
+	validate_args<0>(const char * const *args)
+	{
+		return -1;
+	}
+	template<int i, typename T, typename ...U> int
+	validate_args(const char * const *args)
+	{
+		return validate_cmd_arg<T>(*args) ?
+		    validate_args<i - 1, U...>(args + 1) :
+		    i;
+	}
+
+	/*
+	 * Templates for running commands.  Currently handle up to 3 arguments,
+	 * but it's trivial to add more.  It would be nice to auto-generate
+	 * this, but we can't.
+	 */
+	template <int N, typename ...T> struct cmd_runner;
+
+	template <typename T, typename U, typename V>
+	struct cmd_runner<3, T, U, V> {
+		static int run(int (*f)(T, U, V), const char * const *argv)
+		{
+			return f(extract_arg<T>(argv[0]),
+				extract_arg<U>(argv[1]),
+				extract_arg<V>(argv[2]));
+		}
+	};
+
+	template <typename T, typename U>
+	struct cmd_runner<2, T, U> {
+		static int run(int (*f)(T, U), const char * const *argv)
+		{
+			return f(extract_arg<T>(argv[0]),
+				extract_arg<U>(argv[1]));
+		}
+	};
+
+	template <typename T>
+	struct cmd_runner<1, T> {
+		static int run(int (*f)(T), const char * const *argv)
+		{
+			return f(extract_arg<T>(argv[0]));
+		}
+	};
+	template <>
+	struct cmd_runner<0> {
+		static int run(int (*f)(), const char * const *argv)
+		{
+			return f();
+		}
+	};
 }
 
 /*
@@ -177,23 +200,21 @@ namespace {
  * 	arguments to generate reader wrappers.
  * }
  */
+
 template<typename... Args>
 int
 do_shell_command(const sh_cmd<int(Args...)> *cmd, int argc, const char * const * argv)
 {
-	int i = 0;
-	bool validated_args[sizeof...(Args)] = {validate_cmd_arg<Args>(argv[i++])...};
+	int failed = validate_args<sizeof...(Args), Args...>(argv);
+
+	if (failed != sizeof...(Args)) {
+		iprintf("Invalid argument '%s'.\n\r", argv[sizeof...(Args) - failed]);
+	}
 	if (argc != sizeof...(Args)) {
 		iprintf("Insufficient arguments for %s\n\r", cmd->name);
 		return -1;
 	}
-	for (i = 0; i < sizeof...(Args); i++) {
-		if (!validated_args[i]) {
-			iprintf("Invalid argument '%s'.\n\r", argv[i]);
-			return -1;
-		}
-	}
-	return cmd->real_func(extract_arg<Args>(*argv++)...);
+	return cmd_runner<sizeof...(Args), Args...>::run(cmd->real_func, argv);
 }
 
 template <typename ... Args>
@@ -203,19 +224,52 @@ gen_shell_cmd(int (*func)(Args ...))
 	return do_shell_command<Args...>;
 }
 
+/*
+A little about the following macros:
+
+CMD_FAMILY() defines a command family (top-level command).  At some point, I
+ plan to have nested families, but for now that's not the case.
+
+We use a number of custom section names:
+
+.commands	- Top level command structure.
+.command.<command>.A	- Starting section (linker will place immediately before all commands in a family)
+.command.<command>.a.<subcommand>	- Each command is in here.  Alphabetic order
+.command.<command>.z				- Command terminator.
+
+*/
+
 #define _CMD_FAMILY(fname) \
-	const union chaos::shell::sh_cmd_family_un<void> __CONCAT(__sh_,__CONCAT(fname,__start)) __attribute__((section(".command."#fname".A"))) __attribute__((used))= {.cmd = { .type = chaos::shell::SH_FAMILY, .name = "" }}; \
-	const union chaos::shell::sh_cmd_family_un<void> __CONCAT(__sh_,__CONCAT(fname,__end)) __attribute__((section(".command."#fname".z"))) __attribute__((used))= {.cmd = { .type = chaos::shell::SH_FAMILY, .name = nullptr }}; \
-	const union chaos::shell::sh_cmd_family_un<void> __CONCAT(__sh_family_,fname) __attribute__((section(".commands"))) __attribute__((used))= { .family = { \
-		.type = chaos::shell::SH_FAMILY,\
-		.name = #fname,\
-		.cmd_start = &__CONCAT(__sh_,__CONCAT(fname,__start))}};
+	const union chaos::shell::sh_cmd_family_un<void> \
+	    __CONCAT(__sh_,__CONCAT(fname,__start)) \
+	    __section(".command."#fname".A") __used = \
+		{.cmd = { .type = chaos::shell::SH_FAMILY, .name = "" }}; \
+	const union chaos::shell::sh_cmd_family_un<void> \
+	    __CONCAT(__sh_,__CONCAT(fname,__end)) \
+	    __section(".command."#fname".z") __used = \
+		{.cmd = { .type = chaos::shell::SH_FAMILY, .name = nullptr }}; \
+	const union chaos::shell::sh_cmd_family_un<void> \
+	    __CONCAT(__sh_family_,fname) __section(".commands") __used = \
+		{ .family = { \
+		    .type = chaos::shell::SH_FAMILY,\
+		    .name = #fname,\
+		    .cmd_start = &__CONCAT(__sh_,__CONCAT(fname,__start))}};
 #define CMD(fname,c,f)	\
-	const union chaos::shell::sh_cmd_family_un<decltype(f)> __CONCAT(__sh_,__CONCAT(__CONCAT(fname,_),c)) __attribute__((section(".command."#fname".a."#c))) __attribute__((used)) = {.cmd = { .type = chaos::shell::SH_COMMAND, .name = #c, .func = chaos::shell::gen_shell_cmd(f), .real_func = f, .num_args = chaos::shell::count_args(f)}}
+	const union chaos::shell::sh_cmd_family_un<decltype(f)> \
+	    __CONCAT(__sh_,__CONCAT(__CONCAT(fname,_),c)) \
+	    __section(".command."#fname".a."#c) __used = \
+	        {.cmd = { \
+		    .type = chaos::shell::SH_COMMAND, \
+		    .name = #c, \
+		    .func = chaos::shell::gen_shell_cmd(f), \
+		    .real_func = f, \
+		    .num_args = chaos::shell::count_args(f)}}
 
 #define	CMD_FAMILY(fname) \
 	_CMD_FAMILY(fname); \
-	static int __CONCAT(fname,__help)(void) { return chaos::shell::sh_print_help(#fname, &__CONCAT(__sh_,__CONCAT(fname,__start))); } \
+	static int __CONCAT(fname,__help)(void) \
+		{ return chaos::shell::sh_print_help(#fname, \
+		    &__CONCAT(__sh_,__CONCAT(fname,__start))); } \
 	CMD(fname, help, __CONCAT(fname, __help))
 }
 }

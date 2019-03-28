@@ -170,7 +170,7 @@ int
 get_line(const char *prompt, char *buf, int len, struct shell_state *state)
 {
 	int used = 0;
-	char c;
+	char c = 0;
 
 	fwrite(prompt, 1, strlen(prompt), stdout);
 	memset(buf, 0, len);
@@ -270,7 +270,8 @@ char *shell_tokenize(char **line, char *septok)
 } // namespace shell
 } // namespace chaos
 
-const struct sh_cmd_family<void*> __sh_commands_end __attribute__((section(".commands_end"))) = { .type = SH_FAMILY, .name = nullptr };
+const struct sh_cmd_family<void*> __sh_commands_end _section(".commands_end") __used =
+	{ .type = SH_FAMILY, .name = nullptr };
 _CMD_FAMILY();
 namespace {
 static int
