@@ -30,6 +30,11 @@ MEMORY
 
 SECTIONS
 {
+    /DISCARD/ :
+    {
+	*(.ARM.exidx)
+	*(.ARM.exidx.*)
+    }
     .text :
     {
         _text = .;
@@ -45,7 +50,7 @@ SECTIONS
         sys_threads_end = .;
         *(.rodata*)
         __sh_commands_start = ALIGN(4);
-        KEEP(SORT(*)(.commands))
+        KEEP(*SORT((.commands))
         KEEP(*(.command..a.*))
         KEEP(*(.commands_end))
         KEEP(*(SORT_BY_NAME(.command.*.*)))
