@@ -20,4 +20,8 @@ uint32_t get_freq(void);
 }
 #endif
 
+#ifndef _section
+#define _section(x)	__attribute__((section(x)))
+#endif
+
 #endif
