@@ -2,4 +2,4 @@
 
 .PATH:	${.CURDIR}/drivers/gpio
 
-SRCS+=	tm4c_gpio.c
+SRCS+=	tm4c_gpio.cpp
