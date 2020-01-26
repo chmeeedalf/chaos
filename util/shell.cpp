@@ -270,7 +270,7 @@ char *shell_tokenize(char **line, char *septok)
 } // namespace shell
 } // namespace chaos
 
-const struct sh_cmd_family<void*> __sh_commands_end _section(".commands_end") __used =
+const struct sh_cmd_family<void*> __sh_commands_end __section(".commands_end") __used =
 	{ .type = SH_FAMILY, .name = nullptr };
 _CMD_FAMILY();
 namespace {
