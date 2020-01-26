@@ -39,18 +39,11 @@
 #include <chaos/list.h>
 #include <chaos/queue.h>
 
+#include <bsp/bsp.h>
+
 namespace chaos {
 
 typedef void (*thread_func_t)(void *);
-
-enum {
-    THREAD_STATE_IDLE = 0,
-    THREAD_STATE_RUNNING,
-    THREAD_STATE_SUSPENDED,
-    THREAD_STATE_WAITING,
-};
-
-class thread;
 
 /*
  * A thread is a context of execution.  It may or may not belong to a task.
@@ -70,6 +63,7 @@ struct thread {
 		time_t		 thr_lastrun = 0;
 		int		 thr_state = 0;
 		ssize_t		 thr_heap_top = 0;
+		uint32_t	 thr_curprio = 0;
 		public:
 			constexpr run(const thread *thread) : thr_thread(thread) {}
 	};
@@ -79,7 +73,7 @@ struct thread {
 	uint32_t	 thr_deadline;	/* In microseconds, deadline after which
 					   this thread has failed. */
 	uint32_t	 thr_priority;
-	run	*thr_run;
+	run		*thr_run;
 	size_t		 thr_ssize;
 	size_t		 thr_hsize;
 	uintptr_t	*thr_stack;
@@ -87,9 +81,19 @@ struct thread {
 
 	// Class methods
 	static thread *find_by_tid(int tid);
+	static thread *current();
+	static thread *next();
 
 	// Instance methods
 	void start() const;
+
+	enum {
+	    IDLE = 0,
+	    RUNNING,
+	    SUSPENDED,
+	    WAITING,
+	};
+
 };
 
 /*
@@ -116,6 +120,8 @@ thread *thread_find_by_tid(int tid);
 
 #define __THREAD(name, entry, deadline, ssize, hsize, prio, thrname) \
 	extern chaos::thread::run __CONCAT(thrname,__run); \
+	static_assert(ssize >= sizeof(bsp::context), \
+	    "Thread stack frame too small to hold thread context"); \
 	uintptr_t __CONCAT(thrname,__stack)[KERN_ROUND(ssize,sizeof(uintptr_t))]; \
 	uintptr_t __CONCAT(thrname,__heap)[KERN_ROUND(hsize,sizeof(uintptr_t))]; \
 	const chaos::thread thrname __attribute__((section(".threads"))) = { \

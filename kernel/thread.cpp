@@ -40,7 +40,7 @@ extern chaos::thread sys_threads[];
 extern chaos::thread sys_threads_end;
 
 namespace chaos {
-/* Arbitrary.  Total stack+heap == 2kB. */
+/* Arbitrary.  Total stack+heap == 8.5kB. */
 NAMED_THREAD(chaos_kernel, "chaos kernel",nullptr,0,512,8192,0);
 
 const thread *curthread = &chaos_kernel;
@@ -86,6 +86,18 @@ thread::start(void) const
 {
 }
 
+static const char *
+thread_state(int state)
+{
+	switch (state) {
+	    default: return "Invalid";
+	    case thread::IDLE: return "Idle";
+	    case thread::RUNNING: return "Running";
+	    case thread::SUSPENDED: return "Suspended";
+	    case thread::WAITING: return "Waiting";
+	};
+}
+
 static int
 thread_show(int tid)
 {
@@ -97,6 +109,14 @@ thread_show(int tid)
 	}
 
 	iprintf("Name:\t%s\n\r", td->thr_name);
+	iprintf("State:\t%s\n\r", thread_state(td->thr_run->thr_state));
+	iprintf("Static:\t%p\n\r", td);
+	iprintf("Run:\t%p\n\r", td->thr_run);
+	iprintf("Heap:\n\r");
+	iprintf("  addr:\t%p\n\r", td->thr_heap);
+	iprintf("  size:\t%zu\n\r", td->thr_hsize);
+	iprintf("  used:\t%zd, %ld%%\n\r", td->thr_run->thr_heap_top,
+	    td->thr_run->thr_heap_top * 100 / td->thr_hsize);
 	return 0;
 }
 
@@ -104,13 +124,13 @@ static int
 thread_list(void)
 {
 	thread *i;
-	iprintf("NAME\n");
+	iprintf("     TID\t  NAME\n\r");
 	for (i = &sys_threads[0]; i != &sys_threads_end; i++) {
-		iprintf("% 8d\t%s\n\r", i->thr_run->thr_tid, i->thr_name);
+		iprintf("%8d\t  %s\n\r", i->thr_run->thr_tid, i->thr_name);
 	}
 	for (int t = 0; t < MAX_DYNAMIC_THREADS; t++) {
 		if (dynamic_threads[t].thr_name != nullptr)
-			iprintf("% 8d\t%s\n\r", i->thr_run->thr_tid, i->thr_name);
+			iprintf("%8d\t  %s\n\r", i->thr_run->thr_tid, i->thr_name);
 	}
 	return 0;
 }
