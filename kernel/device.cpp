@@ -68,7 +68,7 @@ list_devices(void)
 	auto d = &sys_devices;
 
 	for (; d < &sys_devices_end; d++) {
-		iprintf("%s\n\r", (*d)->name());
+		iprintf("%s\t%s\n\r", (*d)->name(), (*d)->descr());
 	}
 	return 0;
 }
@@ -93,6 +93,8 @@ device_show(const char *devname)
 		return (1);
 	}
 
+	iprintf("Name:\t%s\n\r", dev->name());
+	iprintf("Description:\t%s\n\r", dev->descr());
 	dev->show();
 	return (0);
 }

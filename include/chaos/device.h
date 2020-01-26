@@ -75,6 +75,7 @@ class device {
 	virtual int show() const { return 0; }
 	const P *parent() const { return dev_parent; }
 	const char *name() const { return dev_name; }
+	const char *descr() const { return dev_descr; }
 
 	typedef T softc_type;
 	protected:
