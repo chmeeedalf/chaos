@@ -28,6 +28,7 @@
  *
  */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -133,12 +134,13 @@ sh_run_command(int argc, const char **argv)
 {
 	const union sh_cmd_family_un<void> *cmdp = &__sh_commands_start;
 	int num_args = 0;
+	int i;
 
 	// Insurance
 	if (argc == 0 || argv[0] == NULL)
 		return;
 
-	for (int i = 0; i < argc; i++) {
+	for (i = 0; i < argc; i++) {
 		while (cmdp->name != NULL) {
 			if (strcmp(cmdp->name, argv[i]) == 0) {
 				if (cmdp->type == SH_COMMAND) {
@@ -161,7 +163,10 @@ sh_run_command(int argc, const char **argv)
 	}
 
 	if (cmdp->name == NULL) {
-		iprintf("Invalid command name: %s\n\r", argv[0]);
+		if (i > 0) {
+			iprintf("Invalid subcommand name: %s\n\r", argv[i]);
+		} else
+			iprintf("Invalid command name: %s\n\r", argv[0]);
 		return;
 	}
 }
@@ -191,6 +196,8 @@ get_line(const char *prompt, char *buf, int len, struct shell_state *state)
 		} else {
 			switch (c) {
 				default:
+					if (!isprint(c))
+						continue;
 					break;
 				case '\t':
 					// TODO: Tab completion
@@ -205,7 +212,9 @@ get_line(const char *prompt, char *buf, int len, struct shell_state *state)
 				putc('\a', stdout);
 				continue;
 			}
-			fwrite(&c, 1, 1, stdout);
+			if (c == 0)
+				continue;
+			putc(c, stdout);
 			buf[used++] = c;
 		}
 	}

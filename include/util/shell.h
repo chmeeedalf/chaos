@@ -115,17 +115,19 @@ namespace {
 	bool validate_cmd_arg<int>(const char *arg) {
 		char *end;
 		strtol(arg, &end, 0);
-		return (end != arg && *end == '\0' && errno == 0);
+		return (end != arg && *end == '\0' && errno == 0) ? -1 : 0;
 	}
 
 	template <>
 	bool validate_cmd_arg<const char *>(const char *arg) { return true; }
 
 	template <>
-	bool validate_cmd_arg<char>(const char *arg) { return (*arg != '\0'); }
+	bool validate_cmd_arg<char>(const char *arg)
+	{ return (*arg != '\0') ? -1 : 0; }
 
 	template <typename... Args>
-	constexpr int count_args(int (*func)(Args...)) { return sizeof...(Args); }
+	constexpr int count_args(int (*func)(Args...))
+	{ return sizeof...(Args); }
 
 	template<int>
 	int
@@ -207,11 +209,13 @@ do_shell_command(const sh_cmd<int(Args...)> *cmd, int argc, const char * const *
 {
 	int failed = validate_args<sizeof...(Args), Args...>(argv);
 
-	if (failed != sizeof...(Args)) {
-		iprintf("Invalid argument '%s'.\n\r", argv[sizeof...(Args) - failed]);
-	}
 	if (argc != sizeof...(Args)) {
 		iprintf("Insufficient arguments for %s\n\r", cmd->name);
+		iprintf("Expected %d, got %d\n\r", sizeof...(Args), argc);
+		return -1;
+	}
+	if (failed != -1) {
+		iprintf("Invalid argument '%s'.\n\r", argv[failed]);
 		return -1;
 	}
 	return cmd_runner<sizeof...(Args), Args...>::run(cmd->real_func, argv);
