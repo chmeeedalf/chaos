@@ -21,9 +21,9 @@ struct serial_softc {
 	int baudrate;
 };
 
-class serial : public chaos::device<serial_softc,chaos::root_device>{
+class serial : public chaos::char_device<serial_softc,chaos::root_device>{
 	public:
-	using device<serial_softc,chaos::root_device>::device;
+	using chaos::char_device<serial_softc,chaos::root_device>::char_device;
 	virtual int init() const;
 	virtual int destroy() const;
 	virtual int probe() const;

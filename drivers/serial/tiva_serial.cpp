@@ -95,7 +95,7 @@ tiva::serial::cdev_read(char *buf, int len) const
 	uint8_t *b = (uint8_t *)buf;
 
 	for (int i = 0; i < len; i++)
-		b[i] = MAP_UARTCharGet(UART0_BASE + 0x1000*sc->uart);
+		b[i] = MAP_UARTCharGet(UART0_BASE + 0x1000 * sc->uart);
 
 	return len;
 }
@@ -107,7 +107,7 @@ tiva::serial::cdev_write(const char *buf, int len) const
 	const uint8_t *b = (const uint8_t *)buf;
 
 	for (int i = 0; i < len; i++)
-		MAP_UARTCharPut(UART0_BASE + 0x1000*sc->uart, b[i]);
+		MAP_UARTCharPut(UART0_BASE + 0x1000 * sc->uart, b[i]);
 
 	return len;
 }
@@ -126,5 +126,7 @@ tiva::serial::probe() const
 
 int tiva::serial::show() const
 {
+	iprintf("Baud:\t%d\n\r", this->dev_softc->baudrate);
+
 	return 0;
 }
