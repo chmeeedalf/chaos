@@ -80,19 +80,22 @@ class device {
 	typedef T softc_type;
 	protected:
 	friend int initialize_device(const chaos::device<void,const chaos::device<void,void>> *dev);
+
+	struct softc_base { };
 	int dev_id;
 	const char *dev_name;
 	const char *dev_descr;
 	const P *dev_parent;
-	T *dev_softc;
+	softc_type *dev_softc;
 	device_run *dev_run;
 };
 
 template<typename T, typename P>
-class char_device {
-	public:
+class char_device : public device<T, P> {
+public:
+	using device<T, P>::device;
 	virtual int cdev_read(char *, int) const;
-	virtual int cdev_write(char *, int) const;
+	virtual int cdev_write(const char *, int) const;
 };
 
 /* Convention is:
