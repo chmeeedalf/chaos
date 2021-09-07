@@ -105,7 +105,7 @@ public:
  */
 
 #define ___DEVICE(cls, name, sc, descr, parent, ...) \
-	static const int __CONCAT(name,_id) __attribute__((section(".devid"))) = (int)&__CONCAT(name,_id); \
+	static const int __CONCAT(name,_id) __section(".devid") = (int)&__CONCAT(name,_id); \
 	static sc __CONCAT(name,_softc){__VA_ARGS__}; \
 	static chaos::device_run __CONCAT(name,_devrun) {chaos::device_state::DEVICE_PREINIT}; \
 	static const cls __CONCAT(name,_dev) __attribute__((used)){ \
@@ -116,7 +116,7 @@ public:
 		parent, \
 		&__CONCAT(name,_devrun), \
 	}; \
-	static const cls *name __attribute__((used)) __attribute__((section(".device"))) = &__CONCAT(name, _dev); \
+	static const cls *name __attribute__((used)) __section(".device") = &__CONCAT(name, _dev); \
 	struct __hack
 #define __DEVICE(cls, name, sc, descr, parent, ...) \
 		___DEVICE(cls, name, sc, descr, parent, __VA_ARGS__)

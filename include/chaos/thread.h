@@ -124,7 +124,7 @@ thread *thread_find_by_tid(int tid);
 	    "Thread stack frame too small to hold thread context"); \
 	uintptr_t __CONCAT(thrname,__stack)[KERN_ROUND(ssize,sizeof(uintptr_t))]; \
 	uintptr_t __CONCAT(thrname,__heap)[KERN_ROUND(hsize,sizeof(uintptr_t))]; \
-	const chaos::thread thrname __attribute__((section(".threads"))) = { \
+	const chaos::thread thrname __section(".threads") = { \
 		.thr_name = name, \
 		.thr_entry = entry, \
 		.thr_deadline = deadline, \
