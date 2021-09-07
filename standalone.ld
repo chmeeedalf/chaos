@@ -50,14 +50,14 @@ SECTIONS
         sys_threads_end = .;
         *(.rodata*)
         __sh_commands_start = ALIGN(4);
-        KEEP(*SORT((.commands))
+        KEEP(*(SORT(.commands)))
         KEEP(*(.command..a.*))
         KEEP(*(.commands_end))
         KEEP(*(SORT_BY_NAME(.command.*.*)))
         _etext = .;
     } > FLASH
 
-    .data : AT(ADDR(.text) + SIZEOF(.text))
+    .data  : AT(ADDR(.text) + SIZEOF(.text))
     {
         _data = .;
         *(vtable)
