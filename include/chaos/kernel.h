@@ -1,6 +1,7 @@
 #ifndef INCLUDE_SYS_KERNEL_H
 #define INCLUDE_SYS_KERNEL_H
 
+#include <sys/cdefs.h>
 #include <stdint.h>
 
 #ifndef MIN
@@ -20,8 +21,14 @@ uint32_t get_freq(void);
 }
 #endif
 
-#ifndef __section
-#define __section(x)	__attribute__((section(x)))
+#ifndef linker_set
+#define	linker_set(name, type)	\
+	type __set_##name##_start __section("." name ".A");	\
+	type __set_##name##_end __section("." name ".z");		\
+	struct hack
+
+#define	linker_set_elm(lname, type, name) \
+	type name __section("." lname "._." #name)
 #endif
 
 #endif
