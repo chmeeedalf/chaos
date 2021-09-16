@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015	Justin Hibbits
+ * Copyright (c) 2015,2021	Justin Hibbits
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,12 +36,18 @@
 #include <stdio.h>
 #include <util/shell.h>
 
+/* FreeRTOS headers */
+#include <FreeRTOS.h>
+#include <task.h>
+
 extern chaos::thread sys_threads[];
 extern chaos::thread sys_threads_end;
 
 namespace chaos {
 /* Arbitrary.  Total stack+heap == 8.5kB. */
 NAMED_THREAD(chaos_kernel, "chaos kernel",nullptr,0,512,8192,0);
+NAMED_THREAD(idle, "idle", nullptr, 0, 512, 0, 0);
+NAMED_THREAD(timers, "timers", nullptr, 0, 512, 0, 0);
 
 const thread *curthread = &chaos_kernel;
 static thread dynamic_threads[MAX_DYNAMIC_THREADS];
@@ -84,6 +90,13 @@ thread::find_by_tid(int tid)
 void
 thread::start(void) const
 {
+	/* Create the FreeRTOS structures if needed. */
+	if (thr_run->thr_state == NEW) {
+		thr_run->thr_handle = xTaskCreateStatic(thr_entry,
+		    thr_name, thr_ssize / sizeof(long), NULL, thr_priority,
+		    (StackType_t *)thr_stack, &thr_run->thr_base);
+		thr_run->thr_state = RUNNING;
+	}
 }
 
 static const char *
@@ -140,12 +153,14 @@ sched_run(void)
 {
 	thread_init_os();
 	bsp::systick_enable();
+	vTaskStartScheduler();
 }
 
+extern "C" void xPortSysTickHandler();
 void
 sched_tick(void)
 {
-	iprintf("tick\n");
+	xPortSysTickHandler();
 }
 
 CMD_FAMILY(thread);
@@ -158,5 +173,23 @@ void
 chaos_systick(void)
 {
 	chaos::sched_tick();
+}
+
+void
+vApplicationGetIdleTaskMemory(StaticTask_t **tcb_buf, StackType_t **stackp,
+		uint32_t *stack_size)
+{
+	*tcb_buf = &chaos::idle.thr_run->thr_base;
+	*stackp = (StackType_t *)chaos::idle.thr_stack;
+	*stack_size = chaos::idle.thr_ssize / sizeof(unsigned long);
+}
+
+void
+vApplicationGetTimerTaskMemory(StaticTask_t **tcb_buf, StackType_t **stackp,
+		uint32_t *stack_size)
+{
+	*tcb_buf = &chaos::timers.thr_run->thr_base;
+	*stackp = (StackType_t *)chaos::timers.thr_stack;
+	*stack_size = chaos::timers.thr_ssize / sizeof(unsigned long);
 }
 }

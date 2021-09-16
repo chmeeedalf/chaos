@@ -41,6 +41,10 @@
 
 #include <bsp/bsp.h>
 
+/* FreeRTOS headers */
+#include <FreeRTOS.h>
+#include <task.h>
+
 namespace chaos {
 
 typedef void (*thread_func_t)(void *);
@@ -56,6 +60,7 @@ struct thread {
 
 	struct run : public chaos::list<chaos::thread::run>::node {
 		//friend class thread;
+		StaticTask_t	 thr_base;
 		const thread	*thr_thread;
 		struct _reent	 thr_reent = {};
 		int		 thr_tid = 0;
@@ -64,6 +69,7 @@ struct thread {
 		int		 thr_state = 0;
 		ssize_t		 thr_heap_top = 0;
 		uint32_t	 thr_curprio = 0;
+		TaskHandle_t	 thr_handle = 0;
 		public:
 			constexpr run(const thread *thread) : thr_thread(thread) {}
 	};
@@ -88,7 +94,8 @@ struct thread {
 	void start() const;
 
 	enum {
-	    IDLE = 0,
+	    NEW = 0,
+	    IDLE,
 	    RUNNING,
 	    SUSPENDED,
 	    WAITING,
