@@ -66,6 +66,9 @@ extern int main(void);
 //*****************************************************************************
 static uint32_t pui32Stack[2048];
 
+extern void xPortPendSVHandler(void);
+extern void vPortSVCHandler(void);
+
 //*****************************************************************************
 //
 // The vector table.  Note that the proper constructs must be placed on this to
@@ -87,10 +90,10 @@ void (* const g_pfnVectors[])(void) =
     0,                                      // Reserved
     0,                                      // Reserved
     0,                                      // Reserved
-    IntDefaultHandler,                      // SVCall handler
+    vPortSVCHandler,                        // SVCall handler
     IntDefaultHandler,                      // Debug monitor handler
     0,                                      // Reserved
-    IntDefaultHandler,                      // The PendSV handler
+    xPortPendSVHandler,                     // The PendSV handler
     SysTickHandler,                         // The SysTick handler
     IntDefaultHandler,                      // GPIO Port A
     IntDefaultHandler,                      // GPIO Port B
@@ -273,22 +276,8 @@ ResetISR(void)
     //
     // Zero fill the bss segment.
     //
-    __asm("    ldr     r0, [pc, #0]\n"
-    	  "    b       1f\n"
-          "    .long   (_bss)\n"
-    	  "1:\n"
-          "    ldr     r1, [pc, #0]\n"
-          "    b       1f\n"
-          "    .long   (_ebss)\n"
-    	  "1:\n"
-          "    mov     r2, #0\n"
-          "    b       zero_loop\n"
-          "    .thumb_func\n"
-          "zero_loop:\n"
-          "        cmp     r0, r1\n"
-          "        it      lt\n"
-          "        strlt   r2, [r0], #4\n"
-          "        blt     zero_loop");
+    for (pui32Dest = &_bss; pui32Dest < &_ebss; pui32Dest++)
+        *pui32Dest = 0;
 
     //
     // Enable the floating-point unit.  This must be done here to handle the
@@ -365,8 +354,9 @@ IntDefaultHandler(void)
 }
 
 extern void chaos_systick(void);
+extern void xPortSysTickHandler();
 static void
 SysTickHandler(void)
 {
-	chaos_systick();
+    xPortSysTickHandler();
 }
