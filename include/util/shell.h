@@ -115,7 +115,7 @@ namespace {
 	bool validate_cmd_arg<int>(const char *arg) {
 		char *end;
 		strtol(arg, &end, 0);
-		return (end != arg && *end == '\0' && errno == 0) ? -1 : 0;
+		return (end != arg && *end == '\0' && errno == 0) ? true : false;
 	}
 
 	template <>
@@ -215,7 +215,8 @@ do_shell_command(const sh_cmd<int(Args...)> *cmd, int argc, const char * const *
 		return -1;
 	}
 	if (failed != -1) {
-		iprintf("Invalid argument '%s'.\n\r", argv[failed]);
+		iprintf("Invalid argument %d '%s'.\n\r", failed,
+		    argv[failed - 1]);
 		return -1;
 	}
 	return cmd_runner<sizeof...(Args), Args...>::run(cmd->real_func, argv);
