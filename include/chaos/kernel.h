@@ -23,8 +23,8 @@ uint32_t get_freq(void);
 
 #ifndef linker_set
 #define	linker_set(name, type)	\
-	type __set_##name##_start __section("." name ".A");	\
-	type __set_##name##_end __section("." name ".z");		\
+	type __CONCAT(__set_, __CONCAT(name, _start)) __section("." #name ".A") __used = {};	\
+	type __CONCAT(__set_, __CONCAT(name, _end)) __section("." #name ".z") __used = {};	\
 	struct hack
 
 #define	linker_set_elm(lname, type, name) \
