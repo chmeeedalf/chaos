@@ -86,9 +86,9 @@ struct thread {
 	uintptr_t	*thr_heap;	/* Pointer. */
 
 	// Class methods
-	static thread *find_by_tid(int tid);
-	static thread *current();
-	static thread *next();
+	static const thread *find_by_tid(int tid);
+	static const thread *current();
+	static const thread *next();
 
 	// Instance methods
 	void start() const;

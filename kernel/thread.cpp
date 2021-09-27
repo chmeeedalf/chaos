@@ -66,7 +66,7 @@ thread_create(thread *thr_template)
 	return nullptr;
 }
 
-thread *
+const thread *
 thread::find_by_tid(int tid)
 {
 	thread *td = &sys_threads[0];
@@ -90,13 +90,25 @@ thread::find_by_tid(int tid)
 void
 thread::start(void) const
 {
+	TaskStatus_t tstatus;
 	/* Create the FreeRTOS structures if needed. */
 	if (thr_run->thr_state == NEW) {
 		thr_run->thr_handle = xTaskCreateStatic(thr_entry,
 		    thr_name, thr_ssize / sizeof(long), NULL, thr_priority,
 		    (StackType_t *)thr_stack, &thr_run->thr_base);
 		thr_run->thr_state = RUNNING;
+		vTaskGetInfo(reinterpret_cast<TaskHandle_t>(&thr_run->thr_base), &tstatus, false, eInvalid);
+		thr_run->thr_tid = tstatus.xTaskNumber;
 	}
+}
+
+const thread *
+thread::current(void)
+{
+	thread::run *run =
+	    reinterpret_cast<thread::run *>(xTaskGetCurrentTaskHandle());
+
+	return run->thr_thread;
 }
 
 static const char *
@@ -114,7 +126,7 @@ thread_state(int state)
 static int
 thread_show(int tid)
 {
-	thread *td = thread::find_by_tid(tid);
+	const thread *td = thread::find_by_tid(tid);
 	
 	if (td == nullptr) {
 		iprintf("No thread matching TID %d\n\r", tid);
