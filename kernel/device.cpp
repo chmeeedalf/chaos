@@ -40,7 +40,7 @@ namespace chaos {
 int
 initialize_device(const chaos::device<void,const chaos::device<void,void>> *dev)
 {
-	if (dev->parent() != NULL) {
+	if (dev->parent() != nullptr) {
 		initialize_device(reinterpret_cast<decltype(dev)>(dev->parent()));
 	}
 
@@ -88,7 +88,7 @@ device_show(const char *devname)
 {
 	auto dev = find_device(devname);
 
-	if (dev == NULL) {
+	if (dev == nullptr) {
 		iprintf("No such device: %s\r\n", devname);
 		return (1);
 	}

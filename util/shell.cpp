@@ -111,7 +111,7 @@ int
 sh_print_help(const char *name, const union sh_cmd_family_un<void> *family)
 {
 	puts("Available commands:\r");
-	for (auto *commands = family; commands->name != NULL; commands++)
+	for (auto *commands = family; commands->name != nullptr; commands++)
 		if (commands->name[0] != '\0') {
 			iprintf("%s", commands->family.name);
 			if (commands->type == SH_FAMILY ||
@@ -137,11 +137,11 @@ sh_run_command(int argc, const char **argv)
 	int i;
 
 	// Insurance
-	if (argc == 0 || argv[0] == NULL)
+	if (argc == 0 || argv[0] == nullptr)
 		return;
 
 	for (i = 0; i < argc; i++) {
-		while (cmdp->name != NULL) {
+		while (cmdp->name != nullptr) {
 			if (strcmp(cmdp->name, argv[i]) == 0) {
 				if (cmdp->type == SH_COMMAND) {
 					// Start parsing arguments
@@ -158,11 +158,11 @@ sh_run_command(int argc, const char **argv)
 			}
 			cmdp++;
 		}
-		if (cmdp->name == NULL)
+		if (cmdp->name == nullptr)
 			break;
 	}
 
-	if (cmdp->name == NULL) {
+	if (cmdp->name == nullptr) {
 		if (i > 0) {
 			iprintf("Invalid subcommand name: %s\n\r", argv[i]);
 		} else
@@ -253,7 +253,7 @@ int shell(const char *prompt)
 		tok[0] = ' ';
 		for (argc = 0; argc < argm; argc++) {
 			parsed_args[argc] = strsep(&pbuf, tok);
-			if (pbuf == NULL) {
+			if (pbuf == nullptr) {
 				argc++;
 				break;
 			}
@@ -266,7 +266,7 @@ int shell(const char *prompt)
 				argc--;
 				continue;
 			}
-			if (parsed_args[argc] == NULL)
+			if (parsed_args[argc] == nullptr)
 				break;
 		}
 		if (argc > 0) {

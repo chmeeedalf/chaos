@@ -96,7 +96,7 @@ thread::start(void) const
 	/* Create the FreeRTOS structures if needed. */
 	if (thr_run->thr_state == NEW) {
 		thr_run->thr_handle = xTaskCreateStatic(thr_entry,
-		    thr_name, thr_ssize / sizeof(long), NULL, thr_priority,
+		    thr_name, thr_ssize / sizeof(long), nullptr, thr_priority,
 		    (StackType_t *)thr_stack, &thr_run->thr_base);
 		thr_run->thr_state = RUNNING;
 		vTaskGetInfo(reinterpret_cast<TaskHandle_t>(&thr_run->thr_base), &tstatus, false, eInvalid);
