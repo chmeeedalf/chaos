@@ -59,7 +59,7 @@
 #undef  _HAVE_LONG_DOUBLE
 
 /* True if long double supported and it is equal to double.  */
-#undef  _LDBL_EQ_DBL
+#define  _LDBL_EQ_DBL	1
  
 /* Define if ivo supported in streamio.  */
 #undef _FVWRITE_IN_STREAMIO
