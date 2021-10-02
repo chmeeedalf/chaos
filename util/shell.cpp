@@ -253,6 +253,10 @@ int shell(const char *prompt)
 		tok[0] = ' ';
 		for (argc = 0; argc < argm; argc++) {
 			parsed_args[argc] = strsep(&pbuf, tok);
+			if (pbuf == NULL) {
+				argc++;
+				break;
+			}
 			if (pbuf[0] == '"' || pbuf[0] == '\'') {
 				tok[0] = pbuf[0];
 				pbuf++;
@@ -269,11 +273,6 @@ int shell(const char *prompt)
 			sh_run_command(argc, parsed_args);
 		}
 	}
-}
-
-char *shell_tokenize(char **line, char *septok)
-{
-	return nullptr;
 }
 
 } // namespace shell
