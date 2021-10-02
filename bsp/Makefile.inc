@@ -2,8 +2,7 @@
 
 .PATH:	${.CURDIR}/bsp
 
-SRCS+=	libc_support.cpp \
-	pinout.c \
+SRCS+=	pinout.c \
 	platform.cpp \
 	startup_gcc.c
 

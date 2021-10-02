@@ -34,6 +34,8 @@
 #include <chaos/thread.h>
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <util/shell.h>
 
 /* FreeRTOS headers */
@@ -45,9 +47,9 @@ extern chaos::thread sys_threads_end;
 
 namespace chaos {
 /* Arbitrary.  Total stack+heap == 8.5kB. */
-NAMED_THREAD(chaos_kernel, "chaos kernel",nullptr,0,512,8192,0);
-NAMED_THREAD(idle, "idle", nullptr, 0, 512, 0, 0);
-NAMED_THREAD(timers, "timers", nullptr, 0, 512, 0, 0);
+extern const thread idle;
+extern const thread timers;
+extern const thread chaos_kernel;
 
 const thread *curthread = &chaos_kernel;
 static thread dynamic_threads[MAX_DYNAMIC_THREADS];
@@ -111,6 +113,12 @@ thread::current(void)
 	return run->thr_thread;
 }
 
+thread::run::run(const thread *thr)
+{ 
+	thr_thread = thr;
+	_REENT_INIT_PTR(&thr_reent);
+}
+
 static const char *
 thread_state(int state)
 {
@@ -123,6 +131,48 @@ thread_state(int state)
 	};
 }
 
+void
+thread::show(void) const
+{
+	iprintf("Name:\t%s\n\r", thr_name);
+	iprintf("State:\t%s\n\r", thread_state(thr_run->thr_state));
+	iprintf("Static:\t%p\n\r", this);
+	iprintf("Run:\t%p\n\r", thr_run);
+	iprintf("Heap:\n\r");
+	iprintf("  addr:\t%p\n\r", thr_heap);
+	iprintf("  size:\t%zu\n\r", thr_hsize);
+	iprintf("  used:\t%zd, %ld%%\n\r", thr_run->thr_heap_top,
+	    thr_run->thr_heap_top * 100 / thr_hsize);
+}
+
+void
+thread::get_memory(StaticTask_t **tcb_buf, StackType_t **stackp,
+		uint32_t *stack_size) const
+{
+	*tcb_buf = &thr_run->thr_base;
+	*stackp = reinterpret_cast<StackType_t *>(thr_stack);
+	*stack_size = thr_ssize / sizeof(unsigned long);
+}
+
+void *
+thread::sbrk(ptrdiff_t diff) const
+{
+	void *ret;
+
+	if (thr_run->thr_heap_top + diff < 0) {
+		thr_run->thr_reent._errno = EINVAL;
+		ret = (void *)-1;
+	}
+	else if (thr_run->thr_heap_top + diff > (thr_hsize / sizeof(uint32_t))) {
+		thr_run->thr_reent._errno = ENOMEM;
+		ret = (void *)-1;
+	}
+	else {
+		ret = &thr_heap[thr_run->thr_heap_top];
+		thr_run->thr_heap_top += diff;
+	}
+}
+
 static int
 thread_show(int tid)
 {
@@ -133,29 +183,22 @@ thread_show(int tid)
 		return -1;
 	}
 
-	iprintf("Name:\t%s\n\r", td->thr_name);
-	iprintf("State:\t%s\n\r", thread_state(td->thr_run->thr_state));
-	iprintf("Static:\t%p\n\r", td);
-	iprintf("Run:\t%p\n\r", td->thr_run);
-	iprintf("Heap:\n\r");
-	iprintf("  addr:\t%p\n\r", td->thr_heap);
-	iprintf("  size:\t%zu\n\r", td->thr_hsize);
-	iprintf("  used:\t%zd, %ld%%\n\r", td->thr_run->thr_heap_top,
-	    td->thr_run->thr_heap_top * 100 / td->thr_hsize);
+	td->show();
+
 	return 0;
 }
 
 static int
 thread_list(void)
 {
-	thread *i;
+	const thread *i;
 	iprintf("     TID\t  NAME\n\r");
 	for (i = &sys_threads[0]; i != &sys_threads_end; i++) {
-		iprintf("%8d\t  %s\n\r", i->thr_run->thr_tid, i->thr_name);
+		iprintf("%8d\t  %s\n\r", i->thread_id(), i->name());
 	}
 	for (int t = 0; t < MAX_DYNAMIC_THREADS; t++) {
-		if (dynamic_threads[t].thr_name != nullptr)
-			iprintf("%8d\t  %s\n\r", i->thr_run->thr_tid, i->thr_name);
+		if (dynamic_threads[t].name() != nullptr)
+			iprintf("%8d\t  %s\n\r", i->thread_id(), i->name());
 	}
 	return 0;
 }
@@ -181,6 +224,12 @@ CMD(thread, list, thread_list);
 }
 
 extern "C" {
+
+__attribute__((weak)) void
+_init(void)
+{
+}
+
 void
 chaos_systick(void)
 {
@@ -191,17 +240,13 @@ void
 vApplicationGetIdleTaskMemory(StaticTask_t **tcb_buf, StackType_t **stackp,
 		uint32_t *stack_size)
 {
-	*tcb_buf = &chaos::idle.thr_run->thr_base;
-	*stackp = (StackType_t *)chaos::idle.thr_stack;
-	*stack_size = chaos::idle.thr_ssize / sizeof(unsigned long);
+	chaos::idle.get_memory(tcb_buf, stackp, stack_size);
 }
 
 void
 vApplicationGetTimerTaskMemory(StaticTask_t **tcb_buf, StackType_t **stackp,
 		uint32_t *stack_size)
 {
-	*tcb_buf = &chaos::timers.thr_run->thr_base;
-	*stackp = (StackType_t *)chaos::timers.thr_stack;
-	*stack_size = chaos::timers.thr_ssize / sizeof(unsigned long);
+	chaos::timers.get_memory(tcb_buf, stackp, stack_size);
 }
 }

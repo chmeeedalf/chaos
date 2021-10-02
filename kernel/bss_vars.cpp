@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015	Justin Hibbits
+ * Copyright (c) 2021	Justin Hibbits
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,93 +28,14 @@
  *
  */
 
-#include <config.h>
-
-#include <reent.h>
-#include <errno.h>
-#include <sys/lock.h>
-#include <sys/types.h>
 #include <chaos/thread.h>
 
-extern "C" {
-long __stack_chk_guard[8] = {0};
+namespace chaos {
+extern const thread chaos_kernel;
+extern const thread idle;
+extern const thread timers;
 
-void
-__stack_chk_fail(void)
-{
-	*(volatile uint32_t *)0 = 0; /* Force a hard fault */
-}
-}
-
-using chaos::curthread;
-
-void
-*_sbrk_r(struct _reent *reent, ptrdiff_t diff)
-{
-	void *ret;
-
-	diff = KERN_ROUND(diff, sizeof(uint32_t));
-
-	if (curthread->thr_run->thr_heap_top + diff < 0) {
-		reent->_errno = EINVAL;
-		ret = (void *)-1;
-	}
-	else if (curthread->thr_run->thr_heap_top + diff > (curthread->thr_hsize / sizeof(uint32_t))) {
-		reent->_errno = ENOMEM;
-		ret = (void *)-1;
-	}
-	else {
-		ret = &curthread->thr_heap[curthread->thr_run->thr_heap_top];
-		curthread->thr_run->thr_heap_top += diff;
-	}
-
-	return ret;
-}
-
-int
-_fstat_r(struct _reent *reent, int fd, struct stat *sb)
-{
-	reent->_errno = ENOSYS;
-	return -1;
-}
-
-int
-_close_r(struct _reent *reent, int fd)
-{
-	reent->_errno = ENOSYS;
-	return -1;
-}
-
-int
-_isatty_r(struct _reent *reent, int fd)
-{
-	reent->_errno = ENOSYS;
-	return -1;
-}
-
-off_t
-_lseek_r(struct _reent *reent, int fd, off_t offset, int whence)
-{
-	reent->_errno = ENOSYS;
-	return -1;
-}
-
-int
-_read_r(struct _reent *reent, int fd, void *buf, size_t nb)
-{
-	reent->_errno = ENOSYS;
-	return -1;
-}
-
-ssize_t
-_write_r(struct _reent *reent, int fd, const void *buf, size_t nb)
-{
-	reent->_errno = ENOSYS;
-	return -1;
-}
-
-struct _reent *
-_getreent(void)
-{
-	return &curthread->thr_run->thr_reent;
+NAMED_THREAD(chaos_kernel, "chaos kernel",nullptr,0,512,8192,0);
+NAMED_THREAD(idle, "idle", nullptr, 0, 512, 0, 0);
+NAMED_THREAD(timers, "timers", nullptr, 0, 512, 0, 0);
 }

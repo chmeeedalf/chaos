@@ -41,6 +41,9 @@ SECTIONS
         KEEP(*(.isr_vector))
         *(.text*)
         _devid_start = ALIGN(4);
+        __init_array_start = .;
+        KEEP(*(.init_array))
+        __init_array_end = .;
         KEEP(*(.devid*))
         sys_devices = .;
         KEEP(*(.device*))

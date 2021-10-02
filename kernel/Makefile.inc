@@ -1,7 +1,9 @@
 # vim:syntax=make:
 .PATH:	${.CURDIR}/kernel
 
-SRCS+=	thread.cpp \
+SRCS+=	libc_support.cpp \
+	thread.cpp	\
+	bss_vars.cpp	\
 	device.cpp
 #device.c
 

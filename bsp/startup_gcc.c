@@ -58,6 +58,7 @@ static void IntDefaultHandler(void);
 //
 //*****************************************************************************
 extern int main(void);
+extern void __libc_init_array(void);
 
 //*****************************************************************************
 //
@@ -296,6 +297,7 @@ ResetISR(void)
     //
     // Call the application's entry point.
     //
+    __libc_init_array();
     main();
 }
 

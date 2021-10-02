@@ -56,10 +56,11 @@ typedef void (*thread_func_t)(void *);
  * run-to-completion (or event-based), while non-real-time threads are
  * preemptible, if the system is configured as such.
  */
-struct thread {
+class thread {
 
+	public:
 	struct run : public chaos::list<chaos::thread::run>::node {
-		//friend class thread;
+		friend class thread;
 		StaticTask_t	 thr_base;
 		const thread	*thr_thread;
 		struct _reent	 thr_reent = {};
@@ -71,19 +72,48 @@ struct thread {
 		uint32_t	 thr_curprio = 0;
 		TaskHandle_t	 thr_handle = 0;
 		public:
-			constexpr run(const thread *thread) : thr_thread(thread) {}
+			run(const thread *thread);
 	};
 
+	template <size_t HS, size_t SS>
+	struct static_run : run{
+		static_assert(HS % sizeof(uintptr_t) == 0);
+		static_assert(SS % sizeof(uintptr_t) == 0);
+		static const size_t HEAP_SIZE = HS;
+		static const size_t STACK_SIZE = SS;
+		uintptr_t heap[HEAP_SIZE / sizeof(uintptr_t)];
+		uintptr_t stack[STACK_SIZE / sizeof(uintptr_t)];
+		public:
+		static_run(const thread *thr) : run(thr) {}
+	};
+
+	protected:
 	const char	*thr_name;
 	thread_func_t	 thr_entry;
-	uint32_t	 thr_deadline;	/* In microseconds, deadline after which
-					   this thread has failed. */
-	uint32_t	 thr_priority;
 	run		*thr_run;
 	size_t		 thr_ssize;
 	size_t		 thr_hsize;
 	uintptr_t	*thr_stack;
 	uintptr_t	*thr_heap;	/* Pointer. */
+	uint32_t	 thr_deadline;	/* In microseconds, deadline after which
+					   this thread has failed. */
+	uint32_t	 thr_priority;
+
+	public:
+	constexpr thread(void) {}
+	constexpr thread(const char *name,
+			thread_func_t entry,
+			run *_run,
+			size_t ssize,
+			size_t hsize,
+			uintptr_t *stack,
+			uintptr_t *heap,
+			uint32_t deadline = 0,
+			uint32_t priority = 0) :
+		thr_name(name), thr_entry(entry), thr_run(_run),
+		thr_ssize(ssize), thr_hsize(hsize),
+		thr_stack(stack), thr_heap(heap),
+		thr_deadline(deadline), thr_priority(priority) {}
 
 	// Class methods
 	static const thread *find_by_tid(int tid);
@@ -92,6 +122,15 @@ struct thread {
 
 	// Instance methods
 	void start() const;
+	void show() const;
+
+	// Accessors
+	uintptr_t *stack(void) const { return thr_stack; }
+	const char *name(void) const { return thr_name; }
+	int thread_id(void) const { return thr_run->thr_tid; }
+	void *sbrk(ptrdiff_t) const;
+
+	struct _reent *reent(void) const { return &thr_run->thr_reent; }
 
 	enum {
 	    NEW = 0,
@@ -101,6 +140,9 @@ struct thread {
 	    WAITING,
 	};
 
+	// FreeRTOS methods
+	void get_memory(StaticTask_t **tcb_buf, StackType_t **stackp,
+		uint32_t *stack_size) const;
 };
 
 /*
@@ -126,23 +168,21 @@ thread *thread_create(thread *thr_template);
 thread *thread_find_by_tid(int tid);
 
 #define __THREAD(name, entry, deadline, ssize, hsize, prio, thrname) \
-	extern chaos::thread::run __CONCAT(thrname,__run); \
+	extern chaos::thread::static_run<hsize,ssize> __CONCAT(thrname,__run); \
 	static_assert(ssize >= sizeof(bsp::context), \
 	    "Thread stack frame too small to hold thread context"); \
-	uintptr_t __CONCAT(thrname,__stack)[KERN_ROUND(ssize,sizeof(uintptr_t))]; \
-	uintptr_t __CONCAT(thrname,__heap)[KERN_ROUND(hsize,sizeof(uintptr_t))]; \
-	const chaos::thread thrname __section(".threads") = { \
-		.thr_name = name, \
-		.thr_entry = entry, \
-		.thr_deadline = deadline, \
-		.thr_priority = prio, \
-		.thr_run = &__CONCAT(thrname,__run), \
-		.thr_ssize = sizeof(__CONCAT(thrname,__stack)),\
-		.thr_hsize = sizeof(__CONCAT(thrname,__heap)),\
-		.thr_stack = __CONCAT(thrname,__stack), \
-		.thr_heap = __CONCAT(thrname,__heap) \
+	const chaos::thread __section(".threads") thrname { \
+		name, \
+		entry, \
+		&__CONCAT(thrname,__run), \
+		sizeof(__CONCAT(thrname,__run)).stack,\
+		sizeof(__CONCAT(thrname,__run)).heap,\
+		__CONCAT(thrname,__run).stack, \
+		__CONCAT(thrname,__run).heap, \
+		deadline, \
+		prio \
 	}; \
-	chaos::thread::run __CONCAT(thrname,__run) { &thrname }; \
+	chaos::thread::static_run<hsize,ssize> __CONCAT(thrname,__run) ( &thrname ); \
 	struct hack
 
 #define NAMED_THREAD(name, descr, entry, deadline, ssize, hsize, prio) \
