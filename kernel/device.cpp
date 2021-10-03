@@ -44,9 +44,9 @@ initialize_device(const chaos::device<void,const chaos::device<void,void>> *dev)
 		initialize_device(reinterpret_cast<decltype(dev)>(dev->parent()));
 	}
 
-	if (dev->dev_run->state == chaos::device_state::DEVICE_PREINIT) {
+	if (dev->dev_run->state == device_state::DEVICE_PREINIT) {
 		dev->init();
-		dev->dev_run->state = chaos::device_state::DEVICE_INITIALIZE;
+		dev->dev_run->state = device_state::DEVICE_INITIALIZE;
 	}
 	return 0;
 }
@@ -54,7 +54,7 @@ initialize_device(const chaos::device<void,const chaos::device<void,void>> *dev)
 int
 initialize_devices(void)
 {
-	const chaos::device<void,const chaos::device<void,void>> **d = &sys_devices;
+	auto d = &sys_devices;
 
 	for (; d < &sys_devices_end; d++) {
 		initialize_device(*d);
@@ -73,7 +73,7 @@ list_devices(void)
 	return 0;
 }
 
-const chaos::device<void,const chaos::device<void,void>> *
+const device<void,const device<void,void>> *
 find_device(const char *name)
 {
 	for (auto d = &sys_devices; d < &sys_devices_end; d++) {

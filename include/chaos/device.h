@@ -79,7 +79,7 @@ class device {
 
 	typedef T softc_type;
 	protected:
-	friend int initialize_device(const chaos::device<void,const chaos::device<void,void>> *dev);
+	friend int initialize_device(const device<void,const device<void,void>> *dev);
 
 	struct softc_base { };
 	int dev_id;
