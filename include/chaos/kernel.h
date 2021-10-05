@@ -11,15 +11,13 @@
 #define KERN_ROUND(x,y) (((x)+((y)-1))/(y))
 #define MHZ (1000 * 1000)
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+__BEGIN_DECLS
 void udelay(uint32_t usec);
 void set_freq(uint32_t freq);
 uint32_t get_freq(void);
-#ifdef __cplusplus
-}
-#endif
+void init_chaos(void);
+
+__END_DECLS
 
 #ifndef linker_set
 #define	linker_set(name, type)	\

@@ -65,6 +65,12 @@ SECTIONS
         _data = .;
         *(vtable)
         *(.data*)
+        _lock_list = .;
+        KEEP(*(.locks*))
+        _lock_list_end = .;
+        _recursive_lock_list = .;
+        KEEP(*(.recursive_locks*))
+        _recursive_lock_list_end = .;
         _edata = .;
     } > SRAM
 

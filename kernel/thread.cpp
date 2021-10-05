@@ -51,7 +51,6 @@ extern const thread idle;
 extern const thread timers;
 extern const thread chaos_kernel;
 
-const thread *curthread = &chaos_kernel;
 static thread dynamic_threads[MAX_DYNAMIC_THREADS];
 
 static list<thread::run> run_queue;
@@ -99,7 +98,10 @@ thread::start(void) const
 		    thr_name, thr_ssize / sizeof(long), nullptr, thr_priority,
 		    (StackType_t *)thr_stack, &thr_run->thr_base);
 		thr_run->thr_state = RUNNING;
-		vTaskGetInfo(reinterpret_cast<TaskHandle_t>(&thr_run->thr_base), &tstatus, false, eInvalid);
+		vTaskGetInfo(reinterpret_cast<TaskHandle_t>(&thr_run->thr_base),
+		    &tstatus, false, eInvalid);
+		vTaskSetThreadLocalStoragePointer(thr_run->thr_handle, 0,
+		    const_cast<void *>(reinterpret_cast<const void *>(this)));
 		thr_run->thr_tid = tstatus.xTaskNumber;
 	}
 }
@@ -107,10 +109,9 @@ thread::start(void) const
 const thread *
 thread::current(void)
 {
-	thread::run *run =
-	    reinterpret_cast<thread::run *>(xTaskGetCurrentTaskHandle());
+	TaskHandle_t th = xTaskGetCurrentTaskHandle();
 
-	return run->thr_thread;
+	return reinterpret_cast<const thread *>(pvTaskGetThreadLocalStoragePointer(th, 0));
 }
 
 thread::run::run(const thread *thr)
@@ -171,6 +172,7 @@ thread::sbrk(ptrdiff_t diff) const
 		ret = &thr_heap[thr_run->thr_heap_top];
 		thr_run->thr_heap_top += diff;
 	}
+	return ret;
 }
 
 static int

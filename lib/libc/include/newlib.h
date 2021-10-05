@@ -79,6 +79,8 @@
 /* Define if declare atexit data as global.  */
 #undef _REENT_GLOBAL_ATEXIT
 
+#define __DYNAMIC_REENT__
+
 /*
  * Iconv encodings enabled ("to" direction)
  */

@@ -84,7 +84,7 @@ class thread {
 		uintptr_t heap[HEAP_SIZE / sizeof(uintptr_t)];
 		uintptr_t stack[STACK_SIZE / sizeof(uintptr_t)];
 		public:
-		static_run(const thread *thr) : run(thr) {}
+		using run::run;
 	};
 
 	protected:
@@ -161,7 +161,6 @@ class task {
 		run	*ta_run;
 };
 
-extern const thread *curthread;
 void sched_yield(void);
 
 thread *thread_create(thread *thr_template);
@@ -204,3 +203,4 @@ void sched_tick(void);
 
 }
 
+#define curthread chaos::thread::current()

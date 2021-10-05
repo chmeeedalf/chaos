@@ -7,7 +7,6 @@ SRCS+=	closer.c \
 	fcntlr.c \
 	fstat64r.c \
 	fstatr.c \
-	getreent.c \
 	gettimeofdayr.c \
 	impure.c \
 	isattyr.c \
