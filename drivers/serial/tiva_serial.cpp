@@ -68,10 +68,10 @@ tiva::serial::init() const
 {
 	struct tiva::serial_softc *sc = dev_softc;
 
-	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0 + 1000 * sc->uart);
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0 + 0x1000 * sc->uart);
 	MAP_UARTEnable(UART0_BASE + (sc->uart << 12));
 
-    tiva_serial_config(this->dev_softc);
+	tiva_serial_config(this->dev_softc);
 
 	return 0;
 }
