@@ -31,11 +31,9 @@
 #include <chaos/thread.h>
 
 namespace chaos {
-extern const thread chaos_kernel;
 extern const thread idle;
 extern const thread timers;
 
-NAMED_THREAD(chaos_kernel, "chaos kernel",nullptr,0,512,8192,0);
 NAMED_THREAD(idle, "idle", nullptr, 0, 512, 0, 0);
 NAMED_THREAD(timers, "timers", nullptr, 0, 512, 0, 0);
 }

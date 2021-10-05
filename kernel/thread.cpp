@@ -49,7 +49,6 @@ namespace chaos {
 /* Arbitrary.  Total stack+heap == 8.5kB. */
 extern const thread idle;
 extern const thread timers;
-extern const thread chaos_kernel;
 
 static thread dynamic_threads[MAX_DYNAMIC_THREADS];
 
