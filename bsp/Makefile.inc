@@ -4,7 +4,6 @@
 
 SRCS+=	pinout.c \
 	platform.cpp \
-	startup_gcc.c
 
 CFLAGS+= -I${.CURDIR}/bsp
 

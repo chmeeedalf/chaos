@@ -4,6 +4,7 @@ CSTD=gnu17
 CXXSTD=gnu++20
 ABI=armelf
 ABIPREFIX=arm-none-eabi
+CPU=arm
 CC=clang
 CXX=clang++
 AR=${ABIPREFIX}-ar
@@ -55,6 +56,7 @@ LIBM=
 LIBGCC=${.CURDIR}/../libcompiler_rt/libcompiler_rt.a
 #EXTRA_LIBS=libdriver.a
 
+.include "arch/Makefile.inc"
 .include "bsp/Makefile.inc"
 .include "driverlib/Makefile.inc"
 #.include "3rdparty/onewire/Makefile.inc"
@@ -64,7 +66,7 @@ LIBGCC=${.CURDIR}/../libcompiler_rt/libcompiler_rt.a
 .include "lib/Makefile.inc"
 #.include "net/Makefile.inc"
 
-ENTRY_hello=ResetISR
+ENTRY_hello=_start
 
 CLEANFILES+=${PROG:.axf=.bin}
 
