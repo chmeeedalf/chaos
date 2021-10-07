@@ -120,6 +120,9 @@ _DEFUN(__sfp, (d),
 
   if (!_GLOBAL_REENT->__sdidinit)
     __sinit (_GLOBAL_REENT);
+
+  /* Ensure this reent is initialized, too. */
+  __sinit (d);
   for (g = &_GLOBAL_REENT->__sglue;; g = g->_next)
     {
       for (fp = g->_iobs, n = g->_niobs; --n >= 0; fp++)
