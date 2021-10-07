@@ -231,6 +231,11 @@ _init(void)
 {
 }
 
+__attribute__((weak)) void
+_fini(void)
+{
+}
+
 void
 chaos_systick(void)
 {
