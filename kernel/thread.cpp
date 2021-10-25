@@ -141,8 +141,8 @@ thread::show(void) const
 	iprintf("Heap:\n\r");
 	iprintf("  addr:\t%p\n\r", thr_heap);
 	iprintf("  size:\t%zu\n\r", thr_hsize);
-	iprintf("  used:\t%zd, %d%%\n\r", thr_run->thr_heap_top,
-	    (int)(thr_run->thr_heap_top * 100 / thr_hsize));
+	iprintf("  used:\t%zd, %d%%\n\r", thr_run->thr_heap_top * sizeof(uintptr_t),
+	    (int)((thr_run->thr_heap_top * 100) / thr_hsize));
 }
 
 void
@@ -163,7 +163,7 @@ thread::sbrk(ptrdiff_t diff) const
 		thr_run->thr_reent._errno = EINVAL;
 		ret = (void *)-1;
 	}
-	else if (thr_run->thr_heap_top + diff > (thr_hsize / sizeof(uint32_t))) {
+	else if (thr_run->thr_heap_top + diff > thr_hsize) {
 		thr_run->thr_reent._errno = ENOMEM;
 		ret = (void *)-1;
 	}

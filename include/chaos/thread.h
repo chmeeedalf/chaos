@@ -111,7 +111,8 @@ class thread {
 			uint32_t deadline = 0,
 			uint32_t priority = 0) :
 		thr_name(name), thr_entry(entry), thr_run(_run),
-		thr_ssize(ssize), thr_hsize(hsize),
+		thr_ssize(howmany(ssize, sizeof(uintptr_t))),
+		thr_hsize(howmany(hsize, sizeof(uintptr_t))),
 		thr_stack(stack), thr_heap(heap),
 		thr_deadline(deadline), thr_priority(priority) {}
 
@@ -167,6 +168,8 @@ thread *thread_create(thread *thr_template);
 thread *thread_find_by_tid(int tid);
 
 #define __THREAD(name, entry, deadline, ssize, hsize, prio, thrname) \
+	static_assert(ssize % sizeof(uintptr_t) == 0); \
+	static_assert(hsize % sizeof(uintptr_t) == 0); \
 	extern chaos::thread::static_run<hsize,ssize> __CONCAT(thrname,__run); \
 	static_assert(ssize >= sizeof(bsp::context), \
 	    "Thread stack frame too small to hold thread context"); \
