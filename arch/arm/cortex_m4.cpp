@@ -118,8 +118,8 @@ _start(void)
 	for (bssp = &_bss; bssp != &_ebss; bssp++)
 		*bssp = 0;
 
-	__libc_init_array();
 	if (bsp::init != nullptr)
 		bsp::init();
+	__libc_init_array();
 	main();
 }
