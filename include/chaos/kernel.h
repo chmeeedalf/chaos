@@ -8,7 +8,6 @@
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
 #endif
 
-#define KERN_ROUND(x,y) (((x)+((y)-1))/(y))
 #define MHZ (1000 * 1000)
 
 __BEGIN_DECLS

@@ -55,7 +55,7 @@ void
 {
 	void *ret;
 
-	diff = KERN_ROUND(diff, sizeof(uint32_t));
+	diff = howmany(diff, sizeof(uint32_t));
 
 	if (reent != curthread->reent()) {
 		reent->_errno = EINVAL;
