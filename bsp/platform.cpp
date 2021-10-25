@@ -30,6 +30,11 @@ void systick_disable()
 	MAP_SysTickDisable();
 }
 
+void init(void)
+{
+	set_freq(configCPU_CLOCK_HZ);
+}
+
 }
 
 void
