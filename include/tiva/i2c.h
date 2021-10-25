@@ -3,8 +3,11 @@
 
 namespace tiva {
 
-struct i2c_bus_softc : chaos::i2c_bus_softc {
-	enum {
+class i2c_bus :	public chaos::i2c_bus {
+	static const uint32_t i2c_base[];
+	static const uint32_t i2c_periph[];
+	public:
+	enum bus {
 		I2C0,
 		I2C1,
 		I2C2,
@@ -15,15 +18,13 @@ struct i2c_bus_softc : chaos::i2c_bus_softc {
 		I2C7,
 		I2C8,
 		I2C9
-	} bus;
-};
-
-class i2c_bus :	public chaos::i2c_bus<tiva::i2c_bus_softc,chaos::root_device> {
-	public:
-	using chaos::i2c_bus<tiva::i2c_bus_softc,chaos::root_device>::i2c_bus;
+	};
+	i2c_bus(const char *name, bus busid) :
+	    chaos::i2c_bus(name, chaos::root_bus), bus_id(busid) {}
 	virtual int i2c_write(uint8_t addr, uint8_t *data, int len) const;
 	virtual int i2c_read(uint8_t addr, uint8_t *data, int len) const;
 	protected:
+	bus bus_id;
 	virtual int init() const;
 	virtual void i2c_start(uint8_t addr, bool recv) const;
 	virtual void i2c_restart() const;

@@ -30,105 +30,58 @@
 
 #include <sys/cdefs.h>
 #include <sys/types.h>
+#include <chaos/kernel.h>
 
 /* C Preprocessor abuse */
-#include <chaos/cpp.h>
+//#include <chaos/cpp.h>
+#include <chaos/list.h>
 
 #ifndef SYS_DEVICE_H
 #define SYS_DEVICE_H
 
 namespace chaos {
-enum class device_state {
-	DEVICE_DISABLED = -1,
-	DEVICE_PREINIT = 0,
-	DEVICE_INITIALIZE = 1,
-	DEVICE_ACTIVE = 2
-};
-
-struct device_run {
-	enum device_state state;
-};
-
-struct no_softc_t{};
-struct root_device{};
-
-static const root_device *root_bus = nullptr;
-
-template <typename T, typename P> class device;
-int initialize_device(const chaos::device<void,const chaos::device<void,void>> *dev);
-int initialize_devices();
 
 /*
  * All the virtual methods are const qualified, because they act on the mutable
  * data in the softc.
  */
-template<typename T, typename P>
-class device {
+class device : public list<device>::node {
+	private:
+	enum class device_state {
+		DEVICE_DISABLED = -1,
+		DEVICE_PREINIT = 0,
+		DEVICE_INITIALIZE = 1,
+		DEVICE_ACTIVE = 2
+	};
+	// Add this device into the tree
+	void attach(void);
 	public:
-	constexpr device(int did, const char *dname, const char *ddescr,
-	    T *dsoftc, const P *dparent, device_run *drun) :
-	        dev_id(did), dev_name(dname), dev_descr(ddescr),
-	        dev_parent(dparent), dev_softc(dsoftc), dev_run(drun) {}
+	explicit device(const char *dname, 
+	    const device *dparent) :
+	        dev_name(dname), dev_parent(dparent) {}
+	~device();
 	virtual int init() const { return 0; }
 	virtual int destroy() const { return 0; }
 	virtual int probe() const { return 0; }
 	virtual int show() const { return 0; }
-	const P *parent() const { return dev_parent; }
+	const device *parent() const { return dev_parent; }
 	const char *name() const { return dev_name; }
-	const char *descr() const { return dev_descr; }
 
-	typedef T softc_type;
 	protected:
-	friend int initialize_device(const device<void,const device<void,void>> *dev);
 
-	struct softc_base { };
-	int dev_id;
 	const char *dev_name;
-	const char *dev_descr;
-	const P *dev_parent;
-	softc_type *dev_softc;
-	device_run *dev_run;
+	const device *dev_parent;
+	enum device_state state;
 };
+extern const device *root_bus;
 
-template<typename T, typename P>
-class char_device : public device<T, P> {
+
+class char_device : public device {
 public:
-	using device<T, P>::device;
+	using device::device;
 	virtual int cdev_read(char *, int) const;
 	virtual int cdev_write(const char *, int) const;
 };
-
-/* Convention is:
- * class
- *  - class_softc
- *  - class_methods
- */
-
-#define ___DEVICE(cls, name, sc, descr, parent, ...) \
-	static const int __CONCAT(name,_id) __section(".devid") = (int)&__CONCAT(name,_id); \
-	static sc __CONCAT(name,_softc){__VA_ARGS__}; \
-	static chaos::device_run __CONCAT(name,_devrun) {chaos::device_state::DEVICE_PREINIT}; \
-	static const cls __CONCAT(name,_dev) __attribute__((used)){ \
-		(int)&__CONCAT(name,_id),\
-		#name, \
-		descr, \
-		&__CONCAT(name,_softc), \
-		parent, \
-		&__CONCAT(name,_devrun), \
-	}; \
-	static const cls *name __attribute__((used)) __section(".device") = &__CONCAT(name, _dev); \
-	struct __hack
-#define __DEVICE(cls, name, sc, descr, parent, ...) \
-		___DEVICE(cls, name, sc, descr, parent, __VA_ARGS__)
-#define _DEVICE(cls, name, sc, descr, parent, ...) \
-		__DEVICE(cls, name, sc, descr, parent, __VA_ARGS__)
-#define DEVICE(cls, name, descr, parent, ...) \
-		_DEVICE(cls, name, cls::softc_type, descr, parent, __VA_ARGS__)
-
-#define DRIVER_PARENT_GEN(p)	const p *__CONCAT(parent_,__COUNTER__);
-#define DRIVER(cls, ...) \
-	_Static_assert(sizeof(cls) == sizeof(device), #cls " doesn't match size of device"); \
-	struct __hack
 
 }
 

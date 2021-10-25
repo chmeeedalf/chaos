@@ -31,42 +31,50 @@
 #ifndef __SYS_LIST_H__
 #define __SYS_LIST_H__
 
+#include <type_traits>
 namespace chaos {
 template <class T>
 class list {
-	public:
-		class node {
-			friend class list<T>;
-			public:
-				constexpr node() {}
-			protected:
-				node *node_next;
-				node *node_prev;
-		};
+public:
+	class node {
+		friend class list<T>;
+		public:
+			constexpr node() { }
+			T *next(void) {
+			    return node_next;
+			}
+		protected:
+			T *node_next;
+			T *node_prev;
+	};
 
-	/* Public function interface. */
-		void add_head(node *);
-		T &pop_head();
-		void add_tail(node *);
-		T &pop_tail();
-		void insert(node *n, node *before); // Insert after the 'before' node.
-		void remove(node *at)
-		{
-			// CRITICAL ENTER
-			if (at == head)
-				head = head->next;
-			else
-				at->previous->next = at->next;
-			if (at == tail)
-				tail = tail->previous;
-			else
-				at->next->previous = at->previous;
-			// CRITICAL EXIT
-		}
+	list() {
+		static_assert(std::is_base_of<node, T>::value);
+	}
+/* Public function interface. */
+	T *head(void) { return head_node; }
+	void add_head(node *);
+	T &pop_head();
+	void add_tail(node *);
+	T &pop_tail();
+	void insert(node *n, node *before); // Insert after the 'before' node.
+	void remove(node *at)
+	{
+		// CRITICAL ENTER
+		if (at == head_node)
+			head_node = head_node->node_next;
+		else
+			at->node_prev->node_next = at->node_next;
+		if (at == tail_node)
+			tail_node = tail_node->node_prev;
+		else
+			at->node_next->node_prev = at->node_prev;
+		// CRITICAL EXIT
+	}
 
-	private:
-		node *head;
-		node *tail;
+private:
+	T *head_node;
+	T *tail_node;
 };
 }
 #endif

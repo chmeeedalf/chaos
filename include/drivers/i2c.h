@@ -43,7 +43,8 @@ struct i2c_transfer {
 	int len;
 };
 
-struct i2c_bus_softc {
+class i2c_bus : public device {
+	protected:
 	void *priv;
 	int speed; /* in Hz */
 	//	struct sem sem; /* protects against concurrent usage */
@@ -53,14 +54,10 @@ struct i2c_bus_softc {
 	int pos;
 	int xfer_error;
 	//	struct sem xfer_sem; /* up when transfers are finished */
-};
 
-template <typename S, typename P>
-class i2c_bus : public device<S, P> {
 	public:
-	static_assert(__is_base_of(chaos::i2c_bus_softc, S),
-		"softc must be a subclass of chaos::i2c_bus_softc");
-	using device<S,P>::device;
+
+	using device::device;
 	virtual int i2c_write(uint8_t addr, uint8_t *data, int len) const = 0;
 	virtual int i2c_read(uint8_t addr, uint8_t *data, int len) const = 0;
 	virtual int i2c_write_read(uint8_t addr, uint8_t *wdata, int wlen, uint8_t *rdata, int rlen) const { return 0; }
@@ -76,21 +73,12 @@ class i2c_bus : public device<S, P> {
 	virtual void i2c_write_byte(uint8_t) const = 0;
 };
 
-class i2c_device_softc {
-	public:
+class i2c_device : public device {
+	protected:
 	uint8_t addr;
-};
-
-template <typename T, typename P>
-class i2c_device : public device<T,P> {
 	public:
-	using device<T,P>::device;
-	uint8_t addr() const { return this->dev_softc->addr; }
-	template <typename S,typename U>
-	static_assert(__is_base_of(chaos::i2c_bus<S,U>, P),
-	    "i2c devices must hang off an i2c bus");
-	static_assert(__is_base_of(chaos::i2c_device_softc, T),
-	    "i2c device softc must be a subclass of i2c_device_softc");
+	using device::device;
+	uint8_t bus_addr() const { return addr; }
 };
 
 }

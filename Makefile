@@ -23,6 +23,7 @@ CFLAGS+=-Wno-attributes
 CFLAGS+= -ffunction-sections
 CFLAGS+= -fno-stack-protector
 CFLAGS+= -D_DYNAMIC_REENT_
+CFLAGS+= -fno-use-cxa-atexit
 LDFLAGS+= -m ${ABI}
 
 CFLAGS+=-isystem ${LIBC_SRCTOP}/include

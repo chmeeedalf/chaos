@@ -6,7 +6,8 @@
 #define TIVA_SERIAL_H
 
 namespace tiva {
-struct serial_softc {
+
+class serial : public chaos::char_device {
 	int uart;
 	int tx_pin;
 	int rx_pin;
@@ -19,11 +20,10 @@ struct serial_softc {
 
 	int parity;
 	int baudrate;
-};
-
-class serial : public chaos::char_device<serial_softc,chaos::root_device>{
 	public:
-	using chaos::char_device<serial_softc,chaos::root_device>::char_device;
+	serial(const char *name, int baud_rate) :
+	    chaos::char_device(name, chaos::root_bus), baudrate(baud_rate)
+	{init();}
 	virtual int init() const;
 	virtual int destroy() const;
 	virtual int probe() const;

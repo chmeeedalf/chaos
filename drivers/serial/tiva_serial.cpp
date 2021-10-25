@@ -12,8 +12,6 @@
 #include <tiva/serial.h>
 #include <chaos/kernel.h>
 
-static int tiva_serial_config(tiva::serial_softc *sc);
-
 #define MAX_GPIO 3
 struct tiva_uart_gpio_config {
 	int tx[MAX_GPIO];
@@ -66,23 +64,12 @@ static struct tiva_uart_gpio_config valid_configs[] = {
 int
 tiva::serial::init() const
 {
-	struct tiva::serial_softc *sc = dev_softc;
-
-	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0 + 0x1000 * sc->uart);
-	MAP_UARTEnable(UART0_BASE + (sc->uart << 12));
-
-	tiva_serial_config(this->dev_softc);
-
-	return 0;
-}
-
-static int
-tiva_serial_config(tiva::serial_softc *sc)
-{
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0 + 0x1000 * uart);
+	MAP_UARTEnable(UART0_BASE + (uart << 12));
 
 	// TODO: Check pin configuration
-	MAP_UARTConfigSetExpClk(UART0_BASE + 0x1000 * sc->uart,
-		get_freq(), sc->baudrate,
+	MAP_UARTConfigSetExpClk(UART0_BASE + 0x1000 * uart,
+		get_freq(), baudrate,
 		(UART_CONFIG_WLEN_8|UART_CONFIG_STOP_ONE|UART_CONFIG_PAR_NONE));
 
 	return 0;
@@ -91,11 +78,10 @@ tiva_serial_config(tiva::serial_softc *sc)
 int
 tiva::serial::cdev_read(char *buf, int len) const
 {
-	struct tiva::serial_softc *sc = dev_softc;
 	uint8_t *b = (uint8_t *)buf;
 
 	for (int i = 0; i < len; i++)
-		b[i] = MAP_UARTCharGet(UART0_BASE + 0x1000 * sc->uart);
+		b[i] = MAP_UARTCharGet(UART0_BASE + 0x1000 * uart);
 
 	return len;
 }
@@ -103,11 +89,10 @@ tiva::serial::cdev_read(char *buf, int len) const
 int
 tiva::serial::cdev_write(const char *buf, int len) const
 {
-	struct tiva::serial_softc *sc = dev_softc;
 	const uint8_t *b = (const uint8_t *)buf;
 
 	for (int i = 0; i < len; i++)
-		MAP_UARTCharPut(UART0_BASE + 0x1000 * sc->uart, b[i]);
+		MAP_UARTCharPut(UART0_BASE + 0x1000 * uart, b[i]);
 
 	return len;
 }
@@ -126,7 +111,7 @@ tiva::serial::probe() const
 
 int tiva::serial::show() const
 {
-	iprintf("Baud:\t%d\n\r", this->dev_softc->baudrate);
+	iprintf("Baud:\t%d\n\r", this->baudrate);
 
 	return 0;
 }

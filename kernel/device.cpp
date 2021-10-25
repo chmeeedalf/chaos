@@ -34,52 +34,37 @@
 #include <string.h>
 #include <util/shell.h>
 
-extern const chaos::device<void,const chaos::device<void,void>> *sys_devices, *sys_devices_end;
 namespace chaos {
 
-int
-initialize_device(const chaos::device<void,const chaos::device<void,void>> *dev)
-{
-	if (dev->parent() != nullptr) {
-		initialize_device(reinterpret_cast<decltype(dev)>(dev->parent()));
-	}
+static list<device> devices;
 
-	if (dev->dev_run->state == device_state::DEVICE_PREINIT) {
-		dev->init();
-		dev->dev_run->state = device_state::DEVICE_INITIALIZE;
-	}
-	return 0;
+// root_bus is a sentinel.  We want to be able to use nullptr checks, so make
+// the root_bus a different sentinel.
+const device *root_bus = reinterpret_cast<device *>(-1);
+
+void
+device::attach(void)
+{
+	devices.add_tail(this);
 }
 
-int
-initialize_devices(void)
+device::~device()
 {
-	auto d = &sys_devices;
-
-	for (; d < &sys_devices_end; d++) {
-		initialize_device(*d);
-	}
-	return 0;
+	devices.remove(this);
 }
 
 static int
 list_devices(void)
 {
-	auto d = &sys_devices;
-
-	for (; d < &sys_devices_end; d++) {
-		iprintf("%s\t%s\n\r", (*d)->name(), (*d)->descr());
-	}
 	return 0;
 }
 
-const device<void,const device<void,void>> *
+const device *
 find_device(const char *name)
 {
-	for (auto d = &sys_devices; d < &sys_devices_end; d++) {
-		if (strcmp(name, (*d)->name()) == 0)
-			return *d;
-	}
+	for (auto d = devices.head(); d != nullptr; d = d->next())
+		if (strcmp(name, d->name()) == 0)
+			return d;
 	return nullptr;
 }
 
@@ -94,7 +79,6 @@ device_show(const char *devname)
 	}
 
 	iprintf("Name:\t%s\n\r", dev->name());
-	iprintf("Description:\t%s\n\r", dev->descr());
 	dev->show();
 	return (0);
 }

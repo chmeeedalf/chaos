@@ -44,10 +44,6 @@ SECTIONS
         __init_array_start = .;
         KEEP(*(.init_array))
         __init_array_end = .;
-        KEEP(*(.devid*))
-        sys_devices = .;
-        KEEP(*(.device*))
-        sys_devices_end = .;
         sys_threads = .;
         KEEP(*(.threads*))
         sys_threads_end = .;
