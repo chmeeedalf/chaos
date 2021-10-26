@@ -69,8 +69,8 @@ class device : public list<device>::node {
 
 	protected:
 
-	const char *dev_name;
-	const device *dev_parent;
+	const char * const dev_name;
+	const device * const dev_parent;
 	enum device_state state;
 };
 extern const device *root_bus;
