@@ -4,6 +4,5 @@
 
 SRCS+=	gpio.c \
 	interrupt.c \
-	cpu.c \
 	i2c.c \
 	sysctl.c
