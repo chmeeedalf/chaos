@@ -53,12 +53,12 @@ public:
 	}
 /* Public function interface. */
 	T *head(void) { return head_node; }
-	void add_head(node *);
+	void add_head(T *);
 	T &pop_head();
-	void add_tail(node *);
+	void add_tail(T *);
 	T &pop_tail();
 	void insert(node *n, node *before); // Insert after the 'before' node.
-	void remove(node *at)
+	void remove(T *at)
 	{
 		// CRITICAL ENTER
 		if (at == head_node)
