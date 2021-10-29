@@ -46,8 +46,10 @@ typedef struct {
  * MATCH_ROM - selects the device by signature (multiple devices on bus)
  * SEARCH_ROM - enumerates the devices on a bus.
  */
-class onewire_bus : public device {
+class onewire_bus : public virtual device {
 public:
+	using device::as_bus;
+	virtual const onewire_bus *as_bus(std::type_identity<onewire_bus>) const { return this; }
 	virtual int w1_reset() const = 0;
 	virtual int w1_triplet(int dir) const = 0;
 	virtual int w1_read() const = 0;
@@ -69,7 +71,7 @@ class onewire_softc {
 	w1_addr_t addr;
 };
 
-class onewire_device : public chaos::device {
+class onewire_device : public virtual chaos::device {
 	public:
 	onewire_device(const char *name, onewire_bus *parent) :
 		device(name, parent) {}

@@ -59,6 +59,7 @@ LIBGCC=${.CURDIR}/../libcompiler_rt/libcompiler_rt.a
 
 .include "arch/Makefile.inc"
 .include "bsp/Makefile.inc"
+.include "cxx/Makefile.inc"
 .include "driverlib/Makefile.inc"
 #.include "3rdparty/onewire/Makefile.inc"
 .include "drivers/Makefile.inc"

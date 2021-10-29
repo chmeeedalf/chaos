@@ -43,7 +43,7 @@ struct i2c_transfer {
 	int len;
 };
 
-class i2c_bus : public device {
+class i2c_bus : public virtual device {
 	protected:
 	void *priv;
 	int speed; /* in Hz */
@@ -57,10 +57,13 @@ class i2c_bus : public device {
 
 	public:
 
-	using device::device;
+	i2c_bus(const char *name, const device *p) : device(name, p) {}
 	virtual int i2c_write(uint8_t addr, uint8_t *data, int len) const = 0;
 	virtual int i2c_read(uint8_t addr, uint8_t *data, int len) const = 0;
 	virtual int i2c_write_read(uint8_t addr, uint8_t *wdata, int wlen, uint8_t *rdata, int rlen) const { return 0; }
+	using device::as_bus;
+	virtual const i2c_bus *as_bus(std::type_identity<chaos::i2c_bus>) const
+		{ return this; }
 	protected:
 	/* called by driver state handler */
 	void i2c_state_machine(int state);
@@ -73,7 +76,7 @@ class i2c_bus : public device {
 	virtual void i2c_write_byte(uint8_t) const = 0;
 };
 
-class i2c_device : public device {
+class i2c_device : public virtual device {
 	protected:
 	uint8_t addr;
 	public:

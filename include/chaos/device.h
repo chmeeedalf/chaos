@@ -31,6 +31,8 @@
 #include <sys/cdefs.h>
 #include <sys/types.h>
 #include <chaos/kernel.h>
+#include <app/user_config.h>
+#include <tuple>
 
 /* C Preprocessor abuse */
 //#include <chaos/cpp.h>
@@ -41,11 +43,36 @@
 
 namespace chaos {
 
+class onewire_bus;
+class i2c_bus;
+class spi_bus;
+
 /*
  * All the virtual methods are const qualified, because they act on the mutable
  * data in the softc.
  */
-class device : public list<device>::node {
+
+template <typename BusType>
+class bus_base {
+public:
+	virtual ~bus_base() = default;
+	virtual const BusType *as_bus(std::type_identity<BusType>) const { return nullptr; }
+
+};
+
+template <typename ... bus_list>
+class bus_mid : public bus_base<bus_list>...
+{
+	public:
+		using bus_base <bus_list>::as_bus...;
+};
+
+template <typename UserBuses, typename DefaultBuses>
+class device_core;
+
+template <typename ... user_buses, typename ... default_buses>
+class device_core<std::tuple<user_buses...>, std::tuple<default_buses...>> :
+    public bus_mid<user_buses..., default_buses...> {
 	private:
 	enum class device_state {
 		DEVICE_DISABLED = -1,
@@ -53,26 +80,43 @@ class device : public list<device>::node {
 		DEVICE_INITIALIZE = 1,
 		DEVICE_ACTIVE = 2
 	};
-	// Add this device into the tree
-	void attach(void);
 	public:
-	explicit device(const char *dname, 
-	    const device *dparent) :
+	explicit device_core(const char *dname, 
+	    const device_core *dparent) :
 	        dev_name(dname), dev_parent(dparent) {}
-	~device();
+	~device_core() = default;
 	virtual int init() const { return 0; }
 	virtual int destroy() const { return 0; }
 	virtual int probe() const { return 0; }
 	virtual int show() const { return 0; }
-	const device *parent() const { return dev_parent; }
+	const device_core *parent() const { return dev_parent; }
 	const char *name() const { return dev_name; }
 
+	using bus_mid<user_buses..., default_buses...>::as_bus;
+
+	device_core()= default;
 	protected:
 
-	const char * const dev_name;
-	const device * const dev_parent;
+	const char * dev_name;
+	const device_core * dev_parent;
 	enum device_state state;
 };
+
+using default_buses = std::tuple<onewire_bus, i2c_bus, spi_bus>;
+//using device = device_core<app::buses, default_buses>;
+class device : public list<device>::node,
+	public device_core<app::buses, default_buses> {
+public:
+	device(const char *name, const device *parent) :
+	    device_core<app::buses, default_buses>(name, parent) {}
+	device()= default;
+	~device();
+
+private:
+	// Add this device into the tree
+	void attach(void);
+};
+
 extern const device *root_bus;
 
 

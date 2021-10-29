@@ -5,15 +5,9 @@
 #include <drivers/i2c.h>
 
 namespace chaos {
-class ds2482_data : public i2c_device_softc {
-};
 
-template <typename P>
-class ds2482	:	public i2c_device<ds2482_data,P>/*,onewire_bus*/ {
+class ds2482	:	public i2c_device, public onewire_bus {
 	public:
-	using i2c_device<ds2482_data,P>::i2c_device;
-	template <typename U, typename V>
-	static_assert(__is_base_of(chaos::i2c_bus<U, V>, P), "Parent must be an i2c bus");
 	/* device */
 	virtual int init() const;
 	//virtual int show() const;

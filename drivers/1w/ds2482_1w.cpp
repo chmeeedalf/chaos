@@ -69,15 +69,14 @@
 	virtual int select() = 0;
 #endif
 
-template <typename P>
-int chaos::ds2482<P>::chip_reset() const
+int chaos::ds2482::chip_reset() const
 {
-	auto parent = this->parent();
+	auto parent = this->parent()->as_bus(std::type_identity<chaos::i2c_bus>{});
 	uint8_t c = CMD_DEV_RESET;
 	uint8_t reply;
 	int r;
 
-	r = parent->i2c_write_read(this->addr(), &c, 1, &reply, 1);
+	r = parent->i2c_write_read(this->addr, &c, 1, &reply, 1);
 	if (r < 0)
 		return r;
 
@@ -86,49 +85,49 @@ int chaos::ds2482<P>::chip_reset() const
 	return -EINVAL;
 }
 
-template <typename P>
-int chaos::ds2482<P>::set_read_ptr(uint8_t ptr) const
+int chaos::ds2482::set_read_ptr(uint8_t ptr) const
 {
+	auto parent = this->parent()->as_bus(std::type_identity<chaos::i2c_bus>{});
 	uint8_t c[2];
 	int r;
 
 	c[0] = CMD_SET_READ_PTR;
 	c[1] = ptr;
-	r = this->parent()->i2c_write(this->addr(), c, 2);
+	r = parent->i2c_write(this->addr, c, 2);
 	if (r < 0)
 		return r;
 
 	return 0;
 }
 
-template <typename P>
-static int ds2482_write_config(chaos::ds2482<P> *self, uint8_t config)
+static int ds2482_write_config(chaos::ds2482 *self, uint8_t config)
 {
+	auto parent = self->parent()->as_bus(std::type_identity<chaos::i2c_bus>{});
 	uint8_t c[2];
 	int r;
 
 	c[0] = CMD_WRITE_CONFIG;
 	c[1] = ~config << 4 | config;
-	r = self->parent()->i2c_write(self->addr(), c, 2);
+	r = parent->i2c_write(self->bus_addr(), c, 2);
 	if (r < 0)
 		return r;
 
 	return 0;
 }
 
-template <typename P>
-int chaos::ds2482<P>::w1_reset() const
+int chaos::ds2482::w1_reset() const
 {
+	auto parent = this->parent()->as_bus(std::type_identity<chaos::i2c_bus>{});
 	uint8_t c = CMD_1W_RESET;
 	int r;
 
-	r = this->parent()->i2c_write(this->addr(), &c, 1);
+	r = parent->i2c_write(addr, &c, 1);
 	if (r < 0)
 		return r;
 
 	/* busy polling */
 	while (1) {
-		r = this->parent()->i2c_read(this->addr(), &c, 1);
+		r = parent->i2c_read(addr, &c, 1);
 		if (r < 0)
 			return r;
 		if ((c & STATUS_1WB) == 0)
@@ -138,19 +137,19 @@ int chaos::ds2482<P>::w1_reset() const
 }
 
 // bit == 1 also means i2c_read time slot
-template <typename P>
-static int ds2482_1w_single_bit(chaos::ds2482<P> *master, int bit)
+static int ds2482_1w_single_bit(chaos::ds2482 *master, int bit)
 {
+	auto parent = master->parent()->as_bus(std::type_identity<chaos::i2c_bus>{});
 	uint8_t c[2] = { CMD_1W_BIT, static_cast<uint8_t>(bit<<7) };
 	int r;
 
-	r = master->parent()->i2c_write(master->addr(), c, 2);
+	r = parent->i2c_write(master->bus_addr(), c, 2);
 	if (r < 0)
 		return r;
 
 	/* busy polling */
 	while (1) {
-		r = master->parent()->i2c_read(master->addr(), c, 1);
+		r = parent->i2c_read(master->bus_addr(), c, 1);
 		if (r < 0)
 			return r;
 		if ((c[0] & STATUS_1WB) == 0)
@@ -159,19 +158,19 @@ static int ds2482_1w_single_bit(chaos::ds2482<P> *master, int bit)
 	return !!(c[0] & STATUS_SBR);
 }
 
-template <typename P>
-int chaos::ds2482<P>::w1_write(uint8_t data) const
+int chaos::ds2482::w1_write(uint8_t data) const
 {
+	auto parent = this->parent()->as_bus(std::type_identity<chaos::i2c_bus>{});
 	uint8_t c[2] = { CMD_1W_WRITE, data };
 	int r;
 
-	r = this->parent()->i2c_write(this->addr(), c, 2);
+	r = parent->i2c_write(this->addr, c, 2);
 	if (r < 0)
 		return r;
 
 	/* busy polling */
 	while (1) {
-		r = this->parent()->i2c_read(this->addr(), c, 1);
+		r = parent->i2c_read(this->addr, c, 1);
 		if (r < 0)
 			return r;
 		if ((c[0] & STATUS_1WB) == 0)
@@ -180,19 +179,19 @@ int chaos::ds2482<P>::w1_write(uint8_t data) const
 	return 0;
 }
 
-template <typename P>
-int chaos::ds2482<P>::w1_read() const
+int chaos::ds2482::w1_read() const
 {
+	auto parent = this->parent()->as_bus(std::type_identity<chaos::i2c_bus>{});
 	uint8_t c = CMD_1W_READ;
 	int r;
 
-	r = this->parent()->i2c_write(this->addr(), &c, 1);
+	r = parent->i2c_write(this->addr, &c, 1);
 	if (r < 0)
 		return r;
 
 	/* busy polling */
 	while (1) {
-		r = this->parent()->i2c_read(this->addr(), &c, 1);
+		r = parent->i2c_read(this->addr, &c, 1);
 		if (r < 0)
 			return r;
 		if ((c & STATUS_1WB) == 0)
@@ -203,7 +202,7 @@ int chaos::ds2482<P>::w1_read() const
 	if (r < 0)
 		return r;
 
-	r = this->parent()->i2c_read(this->addr(), &c, 1);
+	r = parent->i2c_read(this->addr, &c, 1);
 	if (r < 0)
 		return r;
 
@@ -211,19 +210,19 @@ int chaos::ds2482<P>::w1_read() const
 }
 
 /* dir - 0/1 direction to take in case of device conflict */
-template <typename P>
-int chaos::ds2482<P>::w1_triplet(int dir) const
+int chaos::ds2482::w1_triplet(int dir) const
 {
+	auto parent = this->parent()->as_bus(std::type_identity<chaos::i2c_bus>{});
 	uint8_t c[2] = { CMD_1W_TRIPLET, static_cast<uint8_t>(dir<<7) };
 	int r;
 
-	r = this->parent()->i2c_write(this->addr(), c, 2);
+	r = parent->i2c_write(this->addr, c, 2);
 	if (r < 0)
 		return r;
 
 	/* busy polling */
 	while (1) {
-		r = this->parent()->i2c_read(this->addr(), c, 1);
+		r = parent->i2c_read(this->addr, c, 1);
 		if (r < 0)
 			return r;
 		if ((c[0] & STATUS_1WB) == 0)
@@ -249,8 +248,7 @@ int chaos::ds2482<P>::w1_triplet(int dir) const
 	return dir;
 }
 
-template <typename P>
-int chaos::ds2482<P>::init() const
+int chaos::ds2482::init() const
 {
 	int r = w1_reset();
 	if (r < 0)
