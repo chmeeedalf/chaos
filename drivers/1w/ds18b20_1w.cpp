@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015	Justin Hibbits
+ * Copyright (c) 2015,2021	Justin Hibbits
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,22 +35,24 @@
 #define DS18B20_CONVERT	0x44
 #define DS18B20_READ_SCRATCHPAD 0xBE
 
+namespace chaos {
 int ds18b20::get_temp() const
 {
+	auto parent = this->parent()->as_bus(std::type_identity<onewire_bus>{});
 	uint8_t data[9];
 	int temp;
 
-	this->dev_parent->w1_reset();
-	this->dev_parent->w1_skip_rom();
+	parent->w1_reset();
+	parent->w1_skip_rom();
 	//w1_match_rom(parent, sc->sc_addr);
-	this->dev_parent->w1_write(DS18B20_CONVERT);
+	parent->w1_write(DS18B20_CONVERT);
 
-	while (this->dev_parent->w1_read() == 0)
+	while (parent->w1_read() == 0)
 		;
-	this->dev_parent->w1_write(DS18B20_READ_SCRATCHPAD);
+	parent->w1_write(DS18B20_READ_SCRATCHPAD);
 
 	for (int i = 0; i < 9; i++)
-		data[i] = this->dev_parent->w1_read();
+		data[i] = parent->w1_read();
 
 	temp = (data[1] << 8) | data[0];
 
@@ -68,3 +70,4 @@ ds18b20_show(const ds18b20 *w1)
 }
 #endif
 
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014	Justin Hibbits
+ * Copyright (c) 2014,2021	Justin Hibbits
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,11 @@
 #define DS18B20_1W_H
 #include <drivers/1w.h>
 
+namespace chaos {
 class ds18b20 : public chaos::onewire_device {
 	public:
 		using onewire_device::onewire_device;
 		int get_temp() const;
 };
+}
 #endif

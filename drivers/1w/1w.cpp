@@ -137,8 +137,6 @@ int chaos::onewire_bus::w1_match_rom(w1_addr_t addr) const
 /* in case there's only one device on bus, skip rom is used to put it into transport layer mode */
 int chaos::onewire_bus::w1_skip_rom() const
 {
-	int r;
-
 	this->w1_reset();
 	return this->w1_write(W1_SKIP_ROM);
 }
@@ -159,7 +157,7 @@ int chaos::onewire_bus::w1_scan(w1_addr_t addrs[], int num) const
 
 		this->w1_reset();
 
-		this->w1_write(W1_SEARCH_ROM);
+		r = this->w1_write(W1_SEARCH_ROM);
 		if (r < 0) {
 			return r;
 		}
