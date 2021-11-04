@@ -140,7 +140,7 @@ thread::show(void) const
 	iprintf("Run:\t%p\n\r", thr_run);
 	iprintf("Heap:\n\r");
 	iprintf("  addr:\t%p\n\r", thr_heap);
-	iprintf("  size:\t%zu\n\r", thr_hsize);
+	iprintf("  size:\t%zu\n\r", thr_hsize * sizeof(uintptr_t));
 	iprintf("  used:\t%zd, %d%%\n\r", thr_run->thr_heap_top * sizeof(uintptr_t),
 	    (int)((thr_run->thr_heap_top * 100) / thr_hsize));
 }
