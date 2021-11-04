@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <gpio.h>
+#include <drivers/gpio.h>
 
 #include <inc/hw_memmap.h>
 #include <driverlib/rom.h>

@@ -1,6 +1,5 @@
 #include <chaos/device.h>
 #include <mach/gpio.h>
-#include <gpio.h>
 
 #ifndef TIVA_SERIAL_H
 #define TIVA_SERIAL_H

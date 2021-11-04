@@ -1,7 +1,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <gpio.h>
 #include <inc/hw_gpio.h>
 #include <inc/hw_memmap.h>
 #include <driverlib/gpio.h>
@@ -10,6 +9,8 @@
 #include <mach/gpio.h>
 #include <stdio.h>
 #include <util/shell.h>
+#include <chaos/device.h>
+#include <tiva/gpio.h>
 
 #define TO_BASE(pin)	(GPIO_PORTA_AHB_BASE + (((pin & 0xF0) - 0x10) << 8))
 #define TO_PIN(pin)		(1 << (pin & 0x0F))

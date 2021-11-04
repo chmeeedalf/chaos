@@ -2,6 +2,7 @@
 #define _BITBANG_1W_H_
 
 #include <drivers/1w.h>
+#include <drivers/gpio.h>
 
 extern const struct w1_methods bitbang_1w_methods;
 

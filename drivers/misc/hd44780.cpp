@@ -2,7 +2,7 @@
 #include <chaos/kernel.h>
 #include <stdio.h>
 #include <drivers/hd44780.h>
-#include <gpio.h>
+#include <drivers/gpio.h>
 
 /* there are actually read commands/data too, but we won't use that.. for now... maybe BF is important */
 #if 0
