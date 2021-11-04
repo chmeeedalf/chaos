@@ -126,7 +126,8 @@ SRCS+=	asiprintf.c \
 	wscanf.c \
 	wsetup.c
 
-GENSRCS= svfprintf.c vfiprintf.c svfiprintf.c
+GENSRCS+= svfprintf.c vfiprintf.c svfiprintf.c
+CLEANFILES+= ${GENSRCS}
 CFLAGS+=-I${LIBC_SRCTOP}/stdio
 
 .if "${INTEGER_ONLY}" == "yes"
