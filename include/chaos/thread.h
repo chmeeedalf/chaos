@@ -37,7 +37,6 @@
 #include <sys/types.h>
 #include <chaos/kernel.h>
 #include <chaos/list.h>
-#include <chaos/queue.h>
 
 #include <bsp/bsp.h>
 
