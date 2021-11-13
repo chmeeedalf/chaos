@@ -111,6 +111,7 @@ public:
 	    device_core<app::buses, default_buses>(name, parent) {}
 	device()= default;
 	~device();
+	static const device *find_device(const char *name);
 
 private:
 	// Add this device into the tree

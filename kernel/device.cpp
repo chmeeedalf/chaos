@@ -60,7 +60,7 @@ list_devices(void)
 }
 
 const device *
-find_device(const char *name)
+device::find_device(const char *name)
 {
 	for (auto d = devices.head(); d != nullptr; d = d->next())
 		if (strcmp(name, d->name()) == 0)
@@ -71,7 +71,7 @@ find_device(const char *name)
 static int
 device_show(const char *devname)
 {
-	auto dev = find_device(devname);
+	auto dev = device::find_device(devname);
 
 	if (dev == nullptr) {
 		iprintf("No such device: %s\r\n", devname);
