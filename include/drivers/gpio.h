@@ -34,21 +34,13 @@
 
 namespace chaos {
 
-enum gpio_mode {
-	GPIO_INPUT = 0x10,
-	GPIO_INPUT_PU = 0x11,
-	GPIO_INPUT_PD = 0x12,
-	GPIO_OUTPUT = 0x20,
-	GPIO_OUTPUT_SLOW = 0x21,
-	GPIO_ANALOG = 0x30,
-};
-
 class gpio : public device {
 public:
 
 	struct gpio_pin;
+	friend struct gpio_pin;
 
-	gpio(const char *name, device *parent) : device(name, parent) {}
+	gpio(const char *name, const device *parent) : device(name, parent) {}
 	virtual bool state(gpio_pin *p) = 0;
 	virtual void configure(gpio_pin *p) = 0;
 	struct gpio_pin {
@@ -97,7 +89,12 @@ public:
 		bool state(void) {
 			return port->state(this);
 		}
+		void set_direction(gpio_dir d) {
+			port->set_direction(this, d);
+		}
 	};
+protected:
+	virtual void set_direction(gpio_pin *p, gpio_pin::gpio_dir direction) = 0;
 };
 
 }
