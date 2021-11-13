@@ -24,43 +24,6 @@ struct tiva_uart_gpio_config {
 	int ri[MAX_GPIO];
 };
 
-static struct tiva_uart_gpio_config valid_configs[] = {
-	{ .tx = {GPIO_PA1},
-		.rx = {GPIO_PA0},
-		.cts = {GPIO_PH1, GPIO_PM4, GPIO_PB4},
-		.rts = {GPIO_PH0, GPIO_PB5},
-		.dcd = {GPIO_PH2, GPIO_PM5, GPIO_PP3},
-		.dsr = {GPIO_PH3, GPIO_PM6, GPIO_PP4},
-		.dtr = {GPIO_PP2},
-		.ri = {GPIO_PK7, GPIO_PM7}},
-	{ .tx = {GPIO_PB1},
-		.rx = {GPIO_PB0, GPIO_PQ4},
-		.cts = {GPIO_PP3, GPIO_PN1},
-		.rts = {GPIO_PE0, GPIO_PN0},
-		.dcd = {GPIO_PE2, GPIO_PN2},
-		.dsr = {GPIO_PE1, GPIO_PN3},
-		.dtr = {GPIO_PE3, GPIO_PN4},
-		.ri = {GPIO_PN5, GPIO_PE4}},
-	{ .tx = {GPIO_PA7, GPIO_PD5},
-		.rx = {GPIO_PA6, GPIO_PD4},
-		.cts = {GPIO_PN3, GPIO_PD7},
-		.rts = {GPIO_PN2, GPIO_PD6}},
-	{ .tx = {GPIO_PA5, GPIO_PJ1},
-		.rx = {GPIO_PA4, GPIO_PJ0},
-		.cts = {GPIO_PP3, GPIO_PN5},
-		.rts = {GPIO_PP4, GPIO_PN4}},
-	{ .tx = {GPIO_PK1, GPIO_PA3},
-		.rx = {GPIO_PK0, GPIO_PA2},
-		.cts = {GPIO_PK3},
-		.rts = {GPIO_PK2}},
-	{ .tx = {GPIO_PC7},
-		.rx = {GPIO_PC6}},
-	{ .tx = {GPIO_PP1},
-		.rx = {GPIO_PP0}},
-	{ .tx = {GPIO_PC5},
-		.rx = {GPIO_PC4}}
-};
-
 int
 tiva::serial::init() const
 {
