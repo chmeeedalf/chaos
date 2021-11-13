@@ -56,6 +56,8 @@ private:
 protected:
 	virtual void set_direction(chaos::gpio::gpio_pin *p,
 			chaos::gpio::gpio_pin::gpio_dir d);
+	virtual void set_output(chaos::gpio::gpio_pin *p,
+			bool state);
 
 public:
 	gpio_int(const char *name, gpio_mmio *mmio) :
@@ -113,6 +115,16 @@ gpio_int::set_direction(chaos::gpio::gpio_pin *p,
 	if (d == chaos::gpio::gpio_pin::gpio_dir::OUTPUT)
 		mmio->gpio_dir |= pm;
 	p->direction = d;
+}
+
+void
+gpio_int::set_output(chaos::gpio::gpio_pin *p, bool s)
+{
+	uint32_t pm = PIN_MASK(static_cast<gpio_pin*>(p)->pin_no);
+	if (s)
+		mmio->gpio_data |= pm;
+	else
+		mmio->gpio_data &= ~pm;
 }
 
 void

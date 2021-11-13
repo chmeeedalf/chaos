@@ -89,12 +89,16 @@ public:
 		bool state(void) {
 			return port->state(this);
 		}
+		void set(bool state) {
+			port->set_output(this, state);
+		}
 		void set_direction(gpio_dir d) {
 			port->set_direction(this, d);
 		}
 	};
 protected:
 	virtual void set_direction(gpio_pin *p, gpio_pin::gpio_dir direction) = 0;
+	virtual void set_output(gpio_pin *p, bool state) = 0;
 };
 
 }
