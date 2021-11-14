@@ -37,6 +37,7 @@ class ds18b20 : public chaos::onewire_device {
 	public:
 		using onewire_device::onewire_device;
 		int get_temp() const;
+		virtual int show() const;
 };
 }
 #endif

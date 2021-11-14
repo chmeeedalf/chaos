@@ -13,13 +13,13 @@ class ds2482	:	public i2c_device, public onewire_bus {
 	//virtual int show() const;
 
 	/* onewire_bus */
-	virtual int w1_reset() const;
-	virtual int w1_triplet(int dir) const;
+	virtual void w1_reset() const;
 	virtual int w1_read() const;
-	virtual int w1_write(uint8_t data) const;
+	virtual int w1_triplet(int dir) const;
+	virtual void w1_write(uint8_t data) const;
 	private:
 	int set_read_ptr(uint8_t ptr) const;
-	int chip_reset() const;
+	void chip_reset() const;
 };
 }
 

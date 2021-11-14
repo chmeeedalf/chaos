@@ -50,17 +50,17 @@ class onewire_bus : public virtual device {
 public:
 	using device::as_bus;
 	virtual const onewire_bus *as_bus(std::type_identity<onewire_bus>) const { return this; }
-	virtual int w1_reset() const = 0;
-	virtual int w1_triplet(int dir) const = 0;
+	virtual void w1_reset() const = 0;
 	virtual int w1_read() const = 0;
-	virtual int w1_write(uint8_t data) const = 0;
+	virtual int w1_triplet(int dir) const = 0;
+	virtual void w1_write(uint8_t data) const = 0;
 	/* reads rom (family, addr, crc) from one device, in case of multiple this command is an error */
 	int w1_read_rom(w1_addr_t *addr) const;
 	/* selects one device, and puts it into transport layer mode */
 	int w1_match_rom(w1_addr_t addr) const;
 
 	/* in case there's only one device on bus, skip rom is used to put it into transport layer mode */
-	int w1_skip_rom() const;
+	void w1_skip_rom() const;
 
 	int w1_scan(w1_addr_t addrs[], int num) const;
 

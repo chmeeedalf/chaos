@@ -29,7 +29,7 @@
  */
 
 #include <stdint.h>
-//#include <stdio.h>
+#include <stdio.h>
 #include <drivers/ds18b20_1w.h>
 
 #define DS18B20_CONVERT	0x44
@@ -59,15 +59,13 @@ int ds18b20::get_temp() const
 	return (temp);
 }
 
-#if 0
-static int
-ds18b20_show(const ds18b20 *w1)
+int
+ds18b20::show() const
 {
-	int temp = update_temp(w1);
+	int temp = get_temp();
 
 	iprintf("Temperature: %d\r\n", temp >> 4);
 	return (0);
 }
-#endif
 
 }

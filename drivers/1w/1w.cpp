@@ -83,21 +83,11 @@ int chaos::onewire_bus::w1_read_rom(w1_addr_t *addr) const
 	int r;
 	int i;
 
-	r = this->w1_reset();
-	if (r < 0) {
-		return r;
-	}
-
-	r = this->w1_write(W1_READ_ROM);
-	if (r < 0) {
-		return r;
-	}
+	w1_reset();
+	w1_write(W1_READ_ROM);
 
 	for (i=0; i<sizeof(addr->bytes); i++) {
 		r = this->w1_read();
-		if (r < 0) {
-			return r;
-		}
 		addr->bytes[i] = r;
 	}
 
@@ -111,34 +101,23 @@ int chaos::onewire_bus::w1_read_rom(w1_addr_t *addr) const
 /* selects one device, and puts it into transport layer mode */
 int chaos::onewire_bus::w1_match_rom(w1_addr_t addr) const
 {
-	int r;
 	int i;
 
-	r = this->w1_reset();
-	if (r < 0) {
-		return r;
-	}
-
-	r = this->w1_write(W1_MATCH_ROM);
-	if (r < 0) {
-		return r;
-	}
+	w1_reset();
+	w1_write(W1_MATCH_ROM);
 
 	for (i=0; i<sizeof(addr.bytes); i++) {
-		r = this->w1_write(addr.bytes[i]);
-		if (r < 0) {
-			return r;
-		}
+		w1_write(addr.bytes[i]);
 	}
 
 	return 0;
 }
 
 /* in case there's only one device on bus, skip rom is used to put it into transport layer mode */
-int chaos::onewire_bus::w1_skip_rom() const
+void chaos::onewire_bus::w1_skip_rom() const
 {
-	this->w1_reset();
-	return this->w1_write(W1_SKIP_ROM);
+	w1_reset();
+	w1_write(W1_SKIP_ROM);
 }
 
 int chaos::onewire_bus::w1_scan(w1_addr_t addrs[], int num) const
@@ -155,22 +134,16 @@ int chaos::onewire_bus::w1_scan(w1_addr_t addrs[], int num) const
 		int conflict = 64;
 		memset(addr.bytes, 0, sizeof(addr.bytes));
 
-		this->w1_reset();
+		w1_reset();
 
-		r = this->w1_write(W1_SEARCH_ROM);
-		if (r < 0) {
-			return r;
-		}
+		w1_write(W1_SEARCH_ROM);
 
 		for (bit=0; bit<64; bit++) {
 			int b = (last_addr.bytes[bit/8] >> (bit%8)) & 1;
 			if (last_conflict == bit)
 				b = 1;
 			
-			this->w1_triplet(b);
-			if (r < 0) {
-				return r;
-			}
+			r = w1_triplet(b);
 			addr.bytes[bit/8] |= (r&1) << (bit%8);
 
 			/* b == 1 means the conflict path was already taken */
