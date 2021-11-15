@@ -67,15 +67,12 @@ public:
 
 };
 
-class onewire_softc {
+class onewire_device : public virtual chaos::device {
 	protected:
 	w1_addr_t addr;
-};
-
-class onewire_device : public virtual chaos::device {
 	public:
-	onewire_device(const char *name, const onewire_bus *parent) :
-		device(name, parent) {}
+	onewire_device(const char *n, const onewire_bus *parent, w1_addr_t *a) :
+		device(n, parent), addr(*a) {}
 	virtual int show(void) const;
 };
 }

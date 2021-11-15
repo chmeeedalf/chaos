@@ -29,11 +29,14 @@
  */
 
 /* Author: Domen Puncer <domen@cba.si>.  License: WTFPL, see file LICENSE */
-#include <drivers/1w.h>
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
+#include <drivers/1w.h>
+#include <util/shell.h>
 
+
+namespace chaos {
 
 /*
 int w1_reset(device w1)
@@ -78,7 +81,7 @@ static uint8_t crc8r(uint8_t *p, int len)
 }
 
 /* reads rom (family, addr, crc) from one device, in case of multiple this command is an error */
-int chaos::onewire_bus::w1_read_rom(w1_addr_t *addr) const
+int onewire_bus::w1_read_rom(w1_addr_t *addr) const
 {
 	int r;
 	int i;
@@ -99,10 +102,15 @@ int chaos::onewire_bus::w1_read_rom(w1_addr_t *addr) const
 }
 
 /* selects one device, and puts it into transport layer mode */
-int chaos::onewire_bus::w1_match_rom(w1_addr_t addr) const
+int onewire_bus::w1_match_rom(w1_addr_t addr) const
 {
 	int i;
+	static const w1_addr_t blank{};
 
+	if (memcmp(&addr, &blank, sizeof(w1_addr_t)) == 0) {
+		w1_skip_rom();
+		return 0;
+	}
 	w1_reset();
 	w1_write(W1_MATCH_ROM);
 
@@ -114,13 +122,13 @@ int chaos::onewire_bus::w1_match_rom(w1_addr_t addr) const
 }
 
 /* in case there's only one device on bus, skip rom is used to put it into transport layer mode */
-void chaos::onewire_bus::w1_skip_rom() const
+void onewire_bus::w1_skip_rom() const
 {
 	w1_reset();
 	w1_write(W1_SKIP_ROM);
 }
 
-int chaos::onewire_bus::w1_scan(w1_addr_t addrs[], int num) const
+int onewire_bus::w1_scan(w1_addr_t addrs[], int num) const
 {
 	int current = 0;
 	w1_addr_t last_addr;
@@ -144,6 +152,11 @@ int chaos::onewire_bus::w1_scan(w1_addr_t addrs[], int num) const
 				b = 1;
 			
 			r = w1_triplet(b);
+			if (r == ENODEV) {
+				iprintf("Failed with %d, current:%d, bit:%d, b:%d\n",
+				    r, current, bit, b);
+				return (0);
+			}
 			addr.bytes[bit/8] |= (r&1) << (bit%8);
 
 			/* b == 1 means the conflict path was already taken */
@@ -163,11 +176,46 @@ int chaos::onewire_bus::w1_scan(w1_addr_t addrs[], int num) const
 }
 
 int
-chaos::onewire_device::show(void) const
+onewire_device::show(void) const
 {
 	iprintf("  Type: %02x\n\r", addr.bytes[0]);
 	iprintf("  Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",
 	    addr.bytes[1], addr.bytes[2], addr.bytes[3],
 	    addr.bytes[4], addr.bytes[5], addr.bytes[6]);
 	return (0);
+}
+
+int
+scan_w1(const char *name)
+{
+	int ndevices = 15;
+	w1_addr_t devices[ndevices];
+	const device *d = device::find_device(name);
+	const onewire_bus *b;
+
+	if (d == nullptr) {
+		iprintf("No such device %s\n\r", name);
+		return (ENODEV);
+	}
+	b = d->as_bus(std::type_identity<onewire_bus>{});
+	if (b == nullptr) {
+		iprintf("%s is not a onewire bus.\n\r", d->name());
+		return (ENODEV);
+	}
+	ndevices = b->w1_scan(devices, ndevices);
+	iprintf("%d device(s) found.\n\r", ndevices);
+
+	for (int i = 0; i < ndevices; i++) {
+		iprintf("  Type: %02x\n\r", devices[i].bytes[0]);
+		iprintf("  Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",
+		    devices[i].bytes[1], devices[i].bytes[2],
+		    devices[i].bytes[3], devices[i].bytes[4],
+		    devices[i].bytes[5], devices[i].bytes[6]);
+	}
+	return (0);
+}
+
+
+CMD_FAMILY(w1);
+CMD(w1, scan, scan_w1);
 }
