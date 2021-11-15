@@ -205,7 +205,13 @@ get_line(const char *prompt, char *buf, int len, struct shell_state *state)
 					break;
 				case '\b':
 					// TODO: backspace
-					c = 0;
+					if (used > 0) {
+						putc('\b', stdout);
+						putc(' ', stdout);
+						putc('\b', stdout);
+						c = 0;
+						--used;
+					}
 					break;
 			}
 			if (used == len) {
