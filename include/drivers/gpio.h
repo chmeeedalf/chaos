@@ -95,6 +95,9 @@ public:
 		void set_direction(gpio_dir d) {
 			port->set_direction(this, d);
 		}
+		void configure(void) {
+			port->configure(this);
+		}
 	};
 protected:
 	virtual void set_direction(gpio_pin *p, gpio_pin::gpio_dir direction) = 0;
