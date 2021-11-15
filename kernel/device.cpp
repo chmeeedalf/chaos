@@ -56,7 +56,10 @@ device::~device()
 static int
 list_devices(void)
 {
-	return 0;
+	device *d = devices.head();
+	for (; d != nullptr; d = d->next())
+		iprintf("%s\n\r", d->name());
+	return (0);
 }
 
 const device *
