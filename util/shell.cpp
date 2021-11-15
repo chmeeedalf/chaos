@@ -252,6 +252,8 @@ int shell(const char *prompt)
 		pbuf = buf;
 		tok[0] = ' ';
 		for (argc = 0; argc < argm; argc++) {
+			while (strchr(tok, *pbuf) != NULL)
+				pbuf++;
 			parsed_args[argc] = strsep(&pbuf, tok);
 			if (pbuf == nullptr) {
 				argc++;
