@@ -42,13 +42,12 @@ int ds18b20::get_temp() const
 	uint8_t data[9];
 	int temp;
 
-	parent->w1_reset();
 	parent->w1_skip_rom();
-	//w1_match_rom(parent, sc->sc_addr);
 	parent->w1_write(DS18B20_CONVERT);
 
 	while (parent->w1_read() == 0)
 		;
+	parent->w1_skip_rom();
 	parent->w1_write(DS18B20_READ_SCRATCHPAD);
 
 	for (int i = 0; i < 9; i++)
