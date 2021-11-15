@@ -40,13 +40,14 @@ class gpio_onewire : public onewire_bus {
 		gpio::gpio_pin *wire;
 
 	public:
-	gpio_onewire(gpio *parent, gpio::gpio_pin *pin);
+	gpio_onewire(const char *n, gpio *parent, gpio::gpio_pin *pin);
 	virtual void w1_reset() const;
 	virtual int w1_read() const;
 	virtual int w1_triplet(int dir) const;
 	virtual void w1_write(uint8_t data) const;
 	void w1_write_1_bit() const;
 	void w1_write_0_bit() const;
+	int w1_read_bit() const;
 };
 }
 

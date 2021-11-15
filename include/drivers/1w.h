@@ -49,6 +49,7 @@ typedef struct {
 class onewire_bus : public virtual device {
 public:
 	using device::as_bus;
+	onewire_bus(const char *n, const device *p) : device(n, p) {}
 	virtual const onewire_bus *as_bus(std::type_identity<onewire_bus>) const { return this; }
 	virtual void w1_reset() const = 0;
 	virtual int w1_read() const = 0;
@@ -73,7 +74,7 @@ class onewire_softc {
 
 class onewire_device : public virtual chaos::device {
 	public:
-	onewire_device(const char *name, onewire_bus *parent) :
+	onewire_device(const char *name, const onewire_bus *parent) :
 		device(name, parent) {}
 };
 }

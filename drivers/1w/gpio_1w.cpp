@@ -29,46 +29,65 @@
  */
 
 #include <errno.h>
+#include <stdio.h>
 #include <drivers/gpio_1w.h>
 
 namespace chaos {
 
 using gpio_dir = gpio::gpio_pin::gpio_dir;
 
-gpio_onewire::gpio_onewire(gpio *parent, gpio::gpio_pin *pin)
+gpio_onewire::gpio_onewire(const char *name, gpio *parent, gpio::gpio_pin *pin)
+	: device(name, parent), onewire_bus(name, parent)
 {
+	wire = pin;
 	wire->open_drain = true;
 	wire->direction = gpio_dir::INPUT;
-	parent->configure(wire);
+	wire->configure();
 }
 
 void
 gpio_onewire::w1_write_1_bit() const
 {
-	wire->set(0);
 	wire->set_direction(gpio_dir::OUTPUT);
+	wire->set(0);
 	udelay(2);
 	wire->set_direction(gpio_dir::INPUT);
-	udelay(10);
+	udelay(60);
 }
 
 void
 gpio_onewire::w1_write_0_bit() const
 {
-	wire->set(0);
 	wire->set_direction(gpio_dir::OUTPUT);
+	wire->set(0);
 	udelay(60);
 	wire->set_direction(gpio_dir::INPUT);
 	udelay(2);
 }
 
+int
+gpio_onewire::w1_read_bit() const
+{
+	wire->set_direction(gpio_dir::OUTPUT);
+	wire->set(0);
+	udelay(2);
+	wire->set_direction(gpio_dir::INPUT);
+	udelay(10);
+	int bit = wire->state();
+	udelay(50);
+
+	return (bit);
+}
+
 void
 gpio_onewire::w1_reset() const
 {
-	wire->set(0);
 	wire->set_direction(gpio_dir::OUTPUT);
+	wire->set(0);
 	udelay(480);
 	wire->set_direction(gpio_dir::INPUT);
+	udelay(70);
+	udelay(410);
 }
 
 int
@@ -78,13 +97,7 @@ gpio_onewire::w1_read() const
 
 	byte = 0;
 	for (int i = 0; i < 8; i++) {
-		wire->set(0);
-		udelay(2);
-		wire->set_direction(gpio_dir::INPUT);
-		udelay(10);
-		byte |= wire->state();
-		udelay(50);
-		byte <<= 1;
+		byte |= w1_read_bit() << i;
 	}
 
 	return (byte);
@@ -93,13 +106,19 @@ gpio_onewire::w1_read() const
 int
 gpio_onewire::w1_triplet(int dir) const
 {
-	int bit1 = w1_read();
-	int bit2 = w1_read();
+	int bit1 = w1_read_bit();
+	int bit2 = w1_read_bit();
+	int b;
 
 	if (bit1 ^ bit2)
-		w1_write(bit1);
+		b = bit1;
 	else
-		w1_write(dir);
+		b = dir;
+
+	if (b == 1)
+		w1_write_1_bit();
+	else
+		w1_write_0_bit();
 
 	/* return value:
 	 * bit 0: path taken
@@ -124,6 +143,7 @@ gpio_onewire::w1_write(uint8_t data) const
 			w1_write_1_bit();
 		else
 			w1_write_0_bit();
+		data >>= 1;
 	}
 }
 
