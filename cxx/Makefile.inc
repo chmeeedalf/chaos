@@ -1,4 +1,5 @@
 .PATH: ${.CURDIR}/cxx
 
-SRCS+=	memory.cc	\
+SRCS+=	cxa_guard.cc	\
+	memory.cc	\
 	support.cc
