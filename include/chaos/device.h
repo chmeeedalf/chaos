@@ -130,4 +130,25 @@ public:
 
 }
 
+#define DEVICE_TYPE(type, real, name, ...) \
+	type &name() {	\
+		static char b[sizeof(real)] __aligned(sizeof(uintptr_t));	\
+		static bool ready; \
+		if (!ready) { \
+			new(b) real __VA_ARGS__; \
+			ready = true; \
+		} \
+		return *reinterpret_cast<type *>(b); \
+	} \
+	inline auto init_##name = []{\
+		(void)name();\
+		return []{};\
+	}(); struct hack
+
+#define DEVICE(type, name, ...) \
+	DEVICE_TYPE(type, type, name, __VA_ARGS__)
+
+#define	DEVICE_DECLARE(type, name) \
+	type &name();
+
 #endif // SYS_DEVICE_H

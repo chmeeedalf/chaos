@@ -28,4 +28,18 @@ __END_DECLS
 	type name __section("." lname "._." #name)
 #endif
 
+#define	SINGLETON(type, name, ...) \
+	inline type &name() { \
+		static char b[sizeof(type)] __aligned(sizeof(uintptr_t)); \
+		static bool ready; \
+		if (!ready) \
+			new(b) type __VA_ARGS__; \
+		ready = true; \
+		return (*reinterpret_cast<type *>(b)); \
+	} \
+	inline auto init_##name = []{\
+		(void)name();\
+		return []{};\
+	}(); struct hack
+
 #endif
