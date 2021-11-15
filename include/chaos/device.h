@@ -103,13 +103,12 @@ class device_core<std::tuple<user_buses...>, std::tuple<default_buses...>> :
 };
 
 using default_buses = std::tuple<onewire_bus, i2c_bus, spi_bus>;
-//using device = device_core<app::buses, default_buses>;
 class device : public list<device>::node,
 	public device_core<app::buses, default_buses> {
 public:
 	device(const char *name, const device *parent) :
-	    device_core<app::buses, default_buses>(name, parent) {}
-	device()= default;
+	    device_core<app::buses, default_buses>(name, parent) { attach(); }
+	device()= delete;
 	~device();
 	static const device *find_device(const char *name);
 

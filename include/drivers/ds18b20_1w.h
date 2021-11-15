@@ -35,7 +35,8 @@
 namespace chaos {
 class ds18b20 : public chaos::onewire_device {
 	public:
-		using onewire_device::onewire_device;
+		ds18b20(const char *n, const onewire_bus *p) :
+			device(n, p), onewire_device(n, p) {}
 		int get_temp() const;
 		virtual int show() const;
 };

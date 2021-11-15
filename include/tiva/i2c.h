@@ -20,6 +20,7 @@ class i2c_bus :	public chaos::i2c_bus {
 		I2C9
 	};
 	i2c_bus(const char *name, bus busid) :
+	    chaos::device(name, chaos::root_bus),
 	    chaos::i2c_bus(name, chaos::root_bus), bus_id(busid) {}
 	virtual int i2c_write(uint8_t addr, uint8_t *data, int len) const;
 	virtual int i2c_read(uint8_t addr, uint8_t *data, int len) const;
