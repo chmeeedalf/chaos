@@ -48,24 +48,24 @@ public:
 	gpio(const char *name) : chaos::gpio(name, chaos::root_bus) {}
 };
 
-extern gpio *gpio_PA;
-extern gpio *gpio_PB;
-extern gpio *gpio_PC;
-extern gpio *gpio_PD;
-extern gpio *gpio_PE;
-extern gpio *gpio_PF;
-extern gpio *gpio_PG;
-extern gpio *gpio_PH;
-extern gpio *gpio_PJ;
-extern gpio *gpio_PK;
-extern gpio *gpio_PL;
-extern gpio *gpio_PM;
-extern gpio *gpio_PN;
-extern gpio *gpio_PP;
-extern gpio *gpio_PQ;
-extern gpio *gpio_PR;
-extern gpio *gpio_PS;
-extern gpio *gpio_PT;
+DEVICE_DECLARE(gpio, gpio_PA);
+DEVICE_DECLARE(gpio, gpio_PB);
+DEVICE_DECLARE(gpio, gpio_PC);
+DEVICE_DECLARE(gpio, gpio_PD);
+DEVICE_DECLARE(gpio, gpio_PE);
+DEVICE_DECLARE(gpio, gpio_PF);
+DEVICE_DECLARE(gpio, gpio_PG);
+DEVICE_DECLARE(gpio, gpio_PH);
+DEVICE_DECLARE(gpio, gpio_PJ);
+DEVICE_DECLARE(gpio, gpio_PK);
+DEVICE_DECLARE(gpio, gpio_PL);
+DEVICE_DECLARE(gpio, gpio_PM);
+DEVICE_DECLARE(gpio, gpio_PN);
+DEVICE_DECLARE(gpio, gpio_PP);
+DEVICE_DECLARE(gpio, gpio_PQ);
+DEVICE_DECLARE(gpio, gpio_PR);
+DEVICE_DECLARE(gpio, gpio_PS);
+DEVICE_DECLARE(gpio, gpio_PT);
 
 }
 

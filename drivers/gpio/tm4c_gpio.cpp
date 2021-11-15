@@ -11,14 +11,20 @@
 #include <util/shell.h>
 #include <chaos/device.h>
 #include <tiva/gpio.h>
+#include <inc/hw_sysctl.h>
 
 namespace tiva {
 
+#define GPIO_TO_BIT(mmio) \
+	((((uintptr_t)mmio >> 12) & 0xff) - 0x58)
 class gpio_int : public gpio {
+	using gpio_dir = chaos::gpio::gpio_pin::gpio_dir;
+	using gpio_pull_up_down = chaos::gpio::gpio_pin::gpio_pull_up_down;
+	using gpio_trigger = chaos::gpio::gpio_pin::gpio_trigger;
+	using gpio_edge = chaos::gpio::gpio_pin::gpio_edge;
 	public:
 	struct gpio_mmio {
-		uint32_t	gpio_data;
-		uint32_t	rsvd_1[0x3fc / 4];
+		uint32_t	gpio_data[0x100];
 		uint32_t	gpio_dir;
 		uint32_t	gpio_is;
 		uint32_t	gpio_ibe;
@@ -29,7 +35,7 @@ class gpio_int : public gpio {
 		uint32_t	gpio_icr;
 		uint32_t	gpio_afsel;
 		uint32_t	rsvd_2[(0x500 - 0x424) / 4];
-		uint32_t	gpio_dr24;
+		uint32_t	gpio_dr2r;
 		uint32_t	gpio_dr4r;
 		uint32_t	gpio_dr8r;
 		uint32_t	gpio_odr;
@@ -55,13 +61,13 @@ private:
 
 protected:
 	virtual void set_direction(chaos::gpio::gpio_pin *p,
-			chaos::gpio::gpio_pin::gpio_dir d);
+			gpio_dir d);
 	virtual void set_output(chaos::gpio::gpio_pin *p,
 			bool state);
 
 public:
 	gpio_int(const char *name, gpio_mmio *mmio) :
-		gpio(name), mmio(mmio) {}
+		gpio(name), mmio(mmio) { *(uint32_t *)SYSCTL_RCGCGPIO |= (1 << GPIO_TO_BIT(mmio));}
 	virtual bool state(chaos::gpio::gpio_pin *p);
 	virtual void configure(chaos::gpio::gpio_pin *p);
 	void init_pin(gpio_pin *p);
@@ -71,36 +77,39 @@ bool
 gpio_int::state(chaos::gpio::gpio_pin *p)
 {
 	gpio_pin *tp = static_cast<gpio_pin*>(p);
-	return !!(mmio->gpio_data >> tp->pin_no);
-}
-
-void
-gpio_int::configure(chaos::gpio::gpio_pin *p)
-{
+	return !!(mmio->gpio_data[1 << tp->pin_no]);
 }
 
 #define PIN_MASK(p)	(1 << p)
+void
+gpio_int::configure(chaos::gpio::gpio_pin *p)
+{
+	uint32_t pm = PIN_MASK(static_cast<gpio_pin *>(p)->pin_no);
+	mmio->gpio_dir = (mmio->gpio_dir & ~pm) |
+		(p->direction == gpio_dir::OUTPUT ? pm : 0);
+	mmio->gpio_odr = (mmio->gpio_odr & ~pm) |
+		(p->open_drain ? pm : 0);
+	mmio->gpio_pur = (mmio->gpio_dir & ~pm) |
+		(p->updown == gpio_pull_up_down::PULLUP ? pm : 0);
+	mmio->gpio_den |= pm;
+}
+
 void
 gpio_int::init_pin(gpio_pin *p)
 {
 	uint32_t pmask = PIN_MASK(p->pin_no);
 	p->direction = (mmio->gpio_dir & pmask) ?
-		chaos::gpio::gpio_pin::gpio_dir::OUTPUT :
-		chaos::gpio::gpio_pin::gpio_dir::INPUT;
+		gpio_dir::OUTPUT :
+		gpio_dir::INPUT;
 
-	p->updown = (mmio->gpio_pur & pmask) ?
-		chaos::gpio::gpio_pin::gpio_pull_up_down::PULLUP :
-		((mmio->gpio_pdr & pmask) ?
-		 chaos::gpio::gpio_pin::gpio_pull_up_down::PULLDOWN :
-		 chaos::gpio::gpio_pin::gpio_pull_up_down::NONE);
-	p->trigger = (mmio->gpio_is & pmask) ?
-		chaos::gpio::gpio_pin::gpio_trigger::LEVEL :
-		chaos::gpio::gpio_pin::gpio_trigger::EDGE;
-	p->edge = (mmio->gpio_ibe & pmask) ?
-		chaos::gpio::gpio_pin::gpio_edge::BOTH :
-		((mmio->gpio_iev & pmask) ?
-		 chaos::gpio::gpio_pin::gpio_edge::HIGH :
-		 chaos::gpio::gpio_pin::gpio_edge::LOW);
+	p->updown = (mmio->gpio_pur & pmask) ?  gpio_pull_up_down::PULLUP :
+		((mmio->gpio_pdr & pmask) ?  gpio_pull_up_down::PULLDOWN :
+		 gpio_pull_up_down::NONE);
+	p->trigger = (mmio->gpio_is & pmask) ?  gpio_trigger::LEVEL :
+		gpio_trigger::EDGE;
+	p->edge = (mmio->gpio_ibe & pmask) ?  gpio_edge::BOTH :
+		((mmio->gpio_iev & pmask) ?  gpio_edge::HIGH :
+		 gpio_edge::LOW);
 
 	p->open_drain = !!(mmio->gpio_odr & pmask);
 }
@@ -121,10 +130,7 @@ void
 gpio_int::set_output(chaos::gpio::gpio_pin *p, bool s)
 {
 	uint32_t pm = PIN_MASK(static_cast<gpio_pin*>(p)->pin_no);
-	if (s)
-		mmio->gpio_data |= pm;
-	else
-		mmio->gpio_data &= ~pm;
+	mmio->gpio_data[pm] = (s ? pm : 0);
 }
 
 void
@@ -223,41 +229,23 @@ CMD(gpio, set, gpio_cli_set);
 CMD(gpio, get, gpio_cli_get);
 #endif
 
-gpio_int gpio_PA_int("PA", (gpio_int::gpio_mmio *)GPIO_PORTA_AHB_BASE);
-gpio_int gpio_PB_int("PB", (gpio_int::gpio_mmio *)GPIO_PORTB_AHB_BASE);
-gpio_int gpio_PC_int("PC", (gpio_int::gpio_mmio *)GPIO_PORTC_AHB_BASE);
-gpio_int gpio_PD_int("PD", (gpio_int::gpio_mmio *)GPIO_PORTD_AHB_BASE);
-gpio_int gpio_PE_int("PE", (gpio_int::gpio_mmio *)GPIO_PORTE_AHB_BASE);
-gpio_int gpio_PF_int("PF", (gpio_int::gpio_mmio *)GPIO_PORTF_AHB_BASE);
-gpio_int gpio_PG_int("PG", (gpio_int::gpio_mmio *)GPIO_PORTG_AHB_BASE);
-gpio_int gpio_PH_int("PH", (gpio_int::gpio_mmio *)GPIO_PORTH_AHB_BASE);
-gpio_int gpio_PJ_int("PJ", (gpio_int::gpio_mmio *)GPIO_PORTJ_AHB_BASE);
-gpio_int gpio_PK_int("PK", (gpio_int::gpio_mmio *)GPIO_PORTK_BASE);
-gpio_int gpio_PL_int("PL", (gpio_int::gpio_mmio *)GPIO_PORTL_BASE);
-gpio_int gpio_PM_int("PM", (gpio_int::gpio_mmio *)GPIO_PORTM_BASE);
-gpio_int gpio_PN_int("PN", (gpio_int::gpio_mmio *)GPIO_PORTN_BASE);
-gpio_int gpio_PP_int("PP", (gpio_int::gpio_mmio *)GPIO_PORTP_BASE);
-gpio_int gpio_PQ_int("PQ", (gpio_int::gpio_mmio *)GPIO_PORTQ_BASE);
-gpio_int gpio_PR_int("PR", (gpio_int::gpio_mmio *)GPIO_PORTR_BASE);
-gpio_int gpio_PS_int("PS", (gpio_int::gpio_mmio *)GPIO_PORTS_BASE);
-gpio_int gpio_PT_int("PT", (gpio_int::gpio_mmio *)GPIO_PORTT_BASE);
+DEVICE_TYPE(gpio, gpio_int, gpio_PA, ("PA", (gpio_int::gpio_mmio *)GPIO_PORTA_AHB_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PB, ("PB", (gpio_int::gpio_mmio *)GPIO_PORTB_AHB_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PC, ("PC", (gpio_int::gpio_mmio *)GPIO_PORTC_AHB_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PD, ("PD", (gpio_int::gpio_mmio *)GPIO_PORTD_AHB_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PE, ("PE", (gpio_int::gpio_mmio *)GPIO_PORTE_AHB_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PF, ("PF", (gpio_int::gpio_mmio *)GPIO_PORTF_AHB_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PG, ("PG", (gpio_int::gpio_mmio *)GPIO_PORTG_AHB_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PH, ("PH", (gpio_int::gpio_mmio *)GPIO_PORTH_AHB_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PJ, ("PJ", (gpio_int::gpio_mmio *)GPIO_PORTJ_AHB_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PK, ("PK", (gpio_int::gpio_mmio *)GPIO_PORTK_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PL, ("PL", (gpio_int::gpio_mmio *)GPIO_PORTL_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PM, ("PM", (gpio_int::gpio_mmio *)GPIO_PORTM_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PN, ("PN", (gpio_int::gpio_mmio *)GPIO_PORTN_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PP, ("PP", (gpio_int::gpio_mmio *)GPIO_PORTP_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PQ, ("PQ", (gpio_int::gpio_mmio *)GPIO_PORTQ_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PR, ("PR", (gpio_int::gpio_mmio *)GPIO_PORTR_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PS, ("PS", (gpio_int::gpio_mmio *)GPIO_PORTS_BASE));
+DEVICE_TYPE(gpio, gpio_int, gpio_PT, ("PT", (gpio_int::gpio_mmio *)GPIO_PORTT_BASE));
 
-gpio *gpio_PA = &gpio_PA_int;
-gpio *gpio_PB = &gpio_PB_int;
-gpio *gpio_PC = &gpio_PC_int;
-gpio *gpio_PD = &gpio_PD_int;
-gpio *gpio_PE = &gpio_PE_int;
-gpio *gpio_PF = &gpio_PF_int;
-gpio *gpio_PG = &gpio_PG_int;
-gpio *gpio_PH = &gpio_PH_int;
-gpio *gpio_PJ = &gpio_PJ_int;
-gpio *gpio_PK = &gpio_PK_int;
-gpio *gpio_PL = &gpio_PL_int;
-gpio *gpio_PM = &gpio_PM_int;
-gpio *gpio_PN = &gpio_PN_int;
-gpio *gpio_PP = &gpio_PP_int;
-gpio *gpio_PQ = &gpio_PQ_int;
-gpio *gpio_PR = &gpio_PR_int;
-gpio *gpio_PS = &gpio_PS_int;
-gpio *gpio_PT = &gpio_PT_int;
 }
