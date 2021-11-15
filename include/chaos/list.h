@@ -48,16 +48,41 @@ public:
 			T *node_prev;
 	};
 
-	list() {
+	constexpr list() {
 		static_assert(std::is_base_of<node, T>::value);
 	}
 /* Public function interface. */
 	T *head(void) { return head_node; }
-	void add_head(T *);
-	T &pop_head();
-	void add_tail(T *);
-	T &pop_tail();
-	void insert(node *n, node *before); // Insert after the 'before' node.
+	void add_head(T *n) {
+		n->node_next = head_node;
+		n->node_prev = nullptr;
+		head_node->node_prev = n;
+		head_node = n;
+	}
+	T &pop_head() {
+		T *n = head_node;
+		head_node = n->node_next;
+		head_node->node_prev = nullptr;
+		return *n;
+	}
+	void add_tail(T *n) {
+		if (tail_node != nullptr)
+			tail_node->node_next = n;
+		n->node_prev = tail_node;
+		tail_node = n;
+		n->node_next = nullptr;
+		if (head_node == nullptr)
+			head_node = n;
+	}
+	T &pop_tail() {
+		T *n = head_node;
+		head_node = n->node_next;
+		head_node->node_prev = nullptr;
+	}
+
+	void insert(T *n, T *before)
+	{ // Insert after the 'before' node.
+	}
 	void remove(T *at)
 	{
 		// CRITICAL ENTER
