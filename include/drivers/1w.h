@@ -76,6 +76,7 @@ class onewire_device : public virtual chaos::device {
 	public:
 	onewire_device(const char *name, const onewire_bus *parent) :
 		device(name, parent) {}
+	virtual int show(void) const;
 };
 }
 

@@ -161,3 +161,13 @@ int chaos::onewire_bus::w1_scan(w1_addr_t addrs[], int num) const
 
 	return current;
 }
+
+int
+chaos::onewire_device::show(void) const
+{
+	iprintf("  Type: %02x\n\r", addr.bytes[0]);
+	iprintf("  Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",
+	    addr.bytes[1], addr.bytes[2], addr.bytes[3],
+	    addr.bytes[4], addr.bytes[5], addr.bytes[6]);
+	return (0);
+}

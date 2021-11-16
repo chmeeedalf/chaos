@@ -64,6 +64,7 @@ ds18b20::show() const
 	int temp = get_temp();
 
 	iprintf("Temperature: %d\r\n", temp >> 4);
+	onewire_device::show();
 	return (0);
 }
 
