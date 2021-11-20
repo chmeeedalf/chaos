@@ -1,3 +1,5 @@
 .PATH:	${.CURDIR}/util
 
-SRCS+=	shell.cpp
+SRCS+=			\
+	config.cpp	\
+	shell.cpp
