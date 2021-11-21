@@ -1,54 +1,74 @@
+/*
+ * Copyright (c) 2021	Justin Hibbits
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the Project nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ */
 #ifndef _SPI_H_
 #define _SPI_H_
 
-#include <types.h>
-#include <sem.h>
+#include <chaos/device.h>
+#include <chaos/lock.h>
 
+namespace chaos {
 
-#define SPI_CPHA        (1<<0)
-#define SPI_CPOL        (1<<1)
-#define SPI_MODE_0      0
-#define SPI_MODE_1      SPI_CPHA /* data sampled on 2nd clock transition */
-#define SPI_MODE_2      SPI_CPOL /* clock inactive high */
-#define SPI_MODE_3      (SPI_CPOL | SPI_CPHA)
+class spi_device;
+class spi_bus	:	public virtual device {
+	// Data types
+public:
+	struct spi_transfer {
+		const uint8_t *tx_buffer;
+		uint8_t *rx_buffer;
+		size_t len;
+		int error;
+	};
 
-#define SPI_LSB         (1<<2)
+	// Functions
+protected:
+	spi_bus() {}
+public:
+	void add_child(spi_device *child);
+	virtual void transfer(spi_device *slave, spi_transfer *xfer) = 0;
 
-
-
-struct spi_device {
-	int mode;
-	int cs_pin;
-	int clock;
-	struct spi_master *master;
+	// Member variables
+protected:
+	lock sem;
 };
 
-struct spi_transfer {
-	const u8 *tx_buf;
-	u8 *rx_buf;
-	int len;
-	int error; /* 0 for success, error code otherwise */
-	struct sem sem; /* internal, so task can wait for transfer to finish */
+class spi_device	: public virtual device {
+protected:
+	int32_t chip_select;
+	// Protected constructor, dummy device constructor.
+	// Calls device constructor with nullptr arguments because this is an
+	// abstract class, and subclasses are expected to construct device
+	// *before* constructing spi_device.
+	spi_device(int32_t chip_select) : device(nullptr, nullptr) {}
+public:
+	int32_t chipselect() const { return (chip_select); }
 };
-
-struct spi_master {
-	void *spi;
-	void *spi_data;
-
-	int (*transfer)(struct spi_device *device, struct spi_transfer *transfer);
-	int (*change_device)(struct spi_device *device);
-
-	/* internal members */
-	struct spi_device *last_dev;
-	struct sem sem; /* protects against concurrent usage */
-};
-
-
-int spi_transfer_async(struct spi_device *device, struct spi_transfer *msg);
-int spi_transfer(struct spi_device *device, struct spi_transfer *msg);
-void spi_transfer_finished(struct spi_device *device, struct spi_transfer *msg);
-void spi_register_master(struct spi_master *master);
-int spi_register_device(struct spi_master *master, struct spi_device *device);
-
+}
 
 #endif
