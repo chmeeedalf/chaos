@@ -2,7 +2,9 @@
 
 .PATH: ${.CURDIR}/driverlib
 
-SRCS+=	gpio.c \
+SRCS+=	\
+	flash.c \
+	gpio.c \
 	interrupt.c \
 	i2c.c \
 	sysctl.c
