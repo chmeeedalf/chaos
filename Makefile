@@ -13,7 +13,6 @@ LD=${ABIPREFIX}-ld
 RANLIB=${ABIPREFIX}-ranlib
 STRINGS=${ABIPREFIX}-strings
 OBJCOPY=${ABIPREFIX}-objcopy
-#NM=${ABI}-nm
 
 CFLAGS+= -mthumb -mcpu=cortex-m4 -target arm-unknown-eabi -nostdinc -nostdlib
 CFLAGS+= -mfloat-abi=hard
@@ -47,26 +46,22 @@ CXXFLAGS+= -I${.CURDIR}/include/c++/v1
 CXXFLAGS+=-ffreestanding
 LDFLAGS+=-L${LIBC_SRCTOP} --gc-sections
 
-PROG=hello.axf
-SRCS=hello.cpp
 MK_MAN=no
 # Works around issues with abusing bsd.prog.mk
 MK_DEBUG_FILES=no
 
 LIBM=
 LIBGCC=${.CURDIR}/../libcompiler_rt/libcompiler_rt.a
-#EXTRA_LIBS=libdriver.a
 
+.include "app/Makefile.inc"
 .include "arch/Makefile.inc"
 .include "bsp/Makefile.inc"
 .include "cxx/Makefile.inc"
 .include "driverlib/Makefile.inc"
-#.include "3rdparty/onewire/Makefile.inc"
 .include "drivers/Makefile.inc"
 .include "kernel/Makefile.inc"
 .include "util/Makefile.inc"
 .include "lib/Makefile.inc"
-#.include "net/Makefile.inc"
 
 ENTRY_hello=_start
 
