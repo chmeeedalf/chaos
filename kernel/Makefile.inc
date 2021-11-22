@@ -5,7 +5,6 @@ SRCS+=	libc_support.cpp \
 	thread.cpp	\
 	bss_vars.cpp	\
 	device.cpp
-#device.c
 
 FREERTOS=${.CURDIR}/3rdparty/FreeRTOS
 .PATH:	${FREERTOS}
