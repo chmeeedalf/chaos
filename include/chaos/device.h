@@ -123,8 +123,19 @@ extern const device *root_bus;
 class char_device : public device {
 public:
 	using device::device;
-	virtual int cdev_read(char *, int) const;
-	virtual int cdev_write(const char *, int) const;
+	virtual int cdev_read(char *, int) const = 0;
+	virtual int cdev_write(const char *, int) const = 0;
+};
+
+class block_device : public device {
+public:
+	using device::device;
+	virtual int get_sector(off_t, char *, int) const = 0;
+	virtual int put_sector(off_t, const char *, int) const = 0;
+	virtual size_t get_sector_size(void) const = 0;
+	virtual size_t get_block_size(void) const = 0;
+	virtual void sync(void) const = 0;
+	virtual off_t get_sector_count(void) const = 0;
 };
 
 }
