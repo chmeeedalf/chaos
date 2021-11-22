@@ -40,9 +40,14 @@ class spi_bus	:	public virtual device {
 	// Data types
 public:
 	struct spi_transfer {
+		enum xfer_flags {
+			SPI_XFER_NO_CS = 0x00000001,	// Don't assert CS
+		};
+		uint32_t flags;
 		const uint8_t *tx_buffer;
 		uint8_t *rx_buffer;
-		size_t len;
+		size_t tx_len;
+		size_t rx_len;
 		int error;
 	};
 
