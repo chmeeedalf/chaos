@@ -182,6 +182,7 @@ onewire_device::show(void) const
 	iprintf("  Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",
 	    addr.bytes[1], addr.bytes[2], addr.bytes[3],
 	    addr.bytes[4], addr.bytes[5], addr.bytes[6]);
+	iprintf("  CRC: %02x\n\r", addr.bytes[7]);
 	return (0);
 }
 
@@ -211,6 +212,7 @@ scan_w1(const char *name)
 		    devices[i].bytes[1], devices[i].bytes[2],
 		    devices[i].bytes[3], devices[i].bytes[4],
 		    devices[i].bytes[5], devices[i].bytes[6]);
+		iprintf("  CRC: %02x\n\r", devices[i].bytes[7]);
 	}
 	return (0);
 }
