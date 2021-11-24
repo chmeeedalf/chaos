@@ -28,15 +28,20 @@
  *
  */
 
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <drivers/ds18b20_1w.h>
+#include <util/shell.h>
 
-#define DS18B20_CONVERT	0x44
-#define DS18B20_READ_SCRATCHPAD 0xBE
+#define DS18B20_CONVERT			0x44
+#define	DS18B20_COPY_SCRATCHPAD		0x48
+#define	DS18B20_WRITE_SCRATCHPAD	0x4E
+#define DS18B20_READ_SCRATCHPAD		0xBE
 
 namespace chaos {
-int ds18b20::get_temp() const
+int
+ds18b20::get_temp() const
 {
 	auto parent = this->parent()->as_bus(std::type_identity<onewire_bus>{});
 	uint8_t data[9];
@@ -58,6 +63,31 @@ int ds18b20::get_temp() const
 	return (temp);
 }
 
+void
+ds18b20::set_precision(ds18b20::precision prec) const
+{
+	auto parent = this->parent()->as_bus(std::type_identity<onewire_bus>{});
+	uint8_t data[9];
+
+	parent->w1_match_rom(addr);
+	parent->w1_write(DS18B20_READ_SCRATCHPAD);
+
+	for (int i = 0; i < 5; i++)
+		data[i] = parent->w1_read();
+
+	int v = prec;
+	data[4] = v << 5;
+
+	parent->w1_match_rom(addr);
+	parent->w1_write(DS18B20_WRITE_SCRATCHPAD);
+
+	for (int i = 2; i < 5; i++)
+		parent->w1_write(data[i]);
+	parent->w1_match_rom(addr);
+	parent->w1_write(DS18B20_COPY_SCRATCHPAD);
+
+}
+
 int
 ds18b20::show() const
 {
@@ -67,5 +97,44 @@ ds18b20::show() const
 	onewire_device::show();
 	return (0);
 }
+
+int
+ds18b20_set_precision(const char *name, int prec)
+{
+	const device *d = device::find_device(name);
+	ds18b20::precision p;
+
+	if (d == nullptr) {
+		iprintf("No such device %s\n\r", name);
+		return (ENXIO);
+	}
+	const ds18b20 *ds = dynamic_cast<const ds18b20 *>(d);
+	if (ds == nullptr) {
+		iprintf("%s is not a ds18b20!\n\r", d->name());
+		return (ENXIO);
+	}
+	switch (prec) {
+	case 9:
+		p = ds18b20::precision::PREC_9_BIT;
+		break;
+	case 10:
+		p = ds18b20::precision::PREC_9_BIT;
+		break;
+	case 11:
+		p = ds18b20::precision::PREC_9_BIT;
+		break;
+	case 12:
+		p = ds18b20::precision::PREC_9_BIT;
+		break;
+	default:
+		iprintf("Invalid precision %d\n\r", prec);
+		return (EINVAL);
+	}
+	ds->set_precision(p);
+	return (0);
+}
+
+CMD_FAMILY(ds18b20);
+CMD(ds18b20, set_precision, ds18b20_set_precision);
 
 }

@@ -35,10 +35,17 @@
 namespace chaos {
 class ds18b20 : public chaos::onewire_device {
 	public:
+		enum precision {
+			PREC_9_BIT = 0,
+			PREC_10_BIT = 1,
+			PREC_11_BIT = 2,
+			PREC_12_BIT = 3
+		};
 		ds18b20(const char *n, const onewire_bus *p, w1_addr_t *a) :
 			device(n, p), onewire_device(n, p, a) {}
 		int get_temp() const;
-		virtual int show() const;
+		void set_precision(precision prec) const;
+		int show() const override;
 };
 }
 #endif

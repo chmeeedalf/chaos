@@ -198,7 +198,7 @@ scan_w1(const char *name)
 		iprintf("No such device %s\n\r", name);
 		return (ENODEV);
 	}
-	b = d->as_bus(std::type_identity<onewire_bus>{});
+	b = dynamic_cast<const onewire_bus *>(d);
 	if (b == nullptr) {
 		iprintf("%s is not a onewire bus.\n\r", d->name());
 		return (ENODEV);
