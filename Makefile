@@ -41,7 +41,7 @@ CFLAGS+= -std=${CSTD}
 CXXFLAGS+= -std=${CXXSTD}
 .endif
 
-CXXFLAGS+= -fno-exceptions -fno-rtti
+CXXFLAGS+= -fno-exceptions
 CXXFLAGS+= -I${.CURDIR}/include/c++/v1
 CXXFLAGS+=-ffreestanding
 LDFLAGS+=-L${LIBC_SRCTOP} --gc-sections
